@@ -169,6 +169,27 @@
                         </svg>
                         <span>Analisis Kebijakan</span>
                     </a>
+                    <a href="{{ route('data-health') }}"
+                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition {{ request()->routeIs('data-health') ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-100/80 shadow-xs' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 {{ request()->routeIs('data-health') ? 'text-blue-600' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                        </svg>
+                        <span>Kualitas Data</span>
+                    </a>
+                    <a href="{{ route('sarana') }}"
+                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition {{ request()->routeIs('sarana') ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-100/80 shadow-xs' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 {{ request()->routeIs('sarana') ? 'text-blue-600' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 21h19.5M3.75 21V9.75l8.25-6 8.25 6V21M9 21v-5.25h6V21"/>
+                        </svg>
+                        <span>Sarana &amp; Anggaran</span>
+                    </a>
+                    <a href="{{ route('regrouping') }}"
+                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition {{ request()->routeIs('regrouping') ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-100/80 shadow-xs' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 {{ request()->routeIs('regrouping') ? 'text-blue-600' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-9L21 3m0 0-4.5 4.5M21 3H7.5"/>
+                        </svg>
+                        <span>Kandidat Regrouping</span>
+                    </a>
                 </div>
             </div>
 

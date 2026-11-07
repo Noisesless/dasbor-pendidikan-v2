@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DemografiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalysisController;
+use App\Http\Controllers\AdvancedAnalysisController;
 use App\Http\Controllers\GuruController;
 use App\Http\Controllers\InfrastrukturController;
 use App\Http\Controllers\PetaController;
@@ -34,5 +35,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/akreditasi-paud', [AnalysisController::class, 'paud'])->name('paud');
         Route::get('/walidata', [AnalysisController::class, 'walidata'])->name('walidata');
         Route::get('/kebijakan', [AnalysisController::class, 'kebijakan'])->name('kebijakan');
+        Route::get('/data-health', [AdvancedAnalysisController::class, 'dataHealth'])->name('data-health');
+        Route::get('/sarana', [AdvancedAnalysisController::class, 'sarana'])->name('sarana');
+        Route::get('/regrouping', [AdvancedAnalysisController::class, 'regrouping'])->name('regrouping');
     });
 });
