@@ -8,6 +8,19 @@
 
 ## Riwayat Isu Terselesaikan (`RESOLVED`)
 
+### [ISSUE-003] HTTP 403 Forbidden pada Static Asset Bundling Vite (`public/build/assets`)
+- **Status:** `RESOLVED`
+- **Tanggal:** 2026-11-07
+- **Komponen Terdampak:**
+  - `public/build/assets/app-CFKmqfuN.css`
+  - `public/build/assets/app-BzDmb3Yz.js`
+- **Akar Masalah:**
+  File artefak kompilasi Vite yang diunggah ke server produksi mewarisi izin direktori `drwx---rwx` dengan grup `siste563476kan:siste563476kan`. Karena pekerja Nginx (`www-data`) merupakan anggota grup sekunder `siste563476kan`, evaluasi izin POSIX DAC mencocokkan grup file (`---` / tanpa izin eksekusi dan baca) sehingga Nginx memblokir akses file aset dengan status `403 Forbidden`.
+- **Solusi yang Diterapkan:**
+  1. Menyeragamkan kepemilikan seluruh berkas dan folder di `public/build/` ke `siste563476kan:siste563476kan`.
+  2. Memberikan izin traversal `775` (`drwxrwxr-x`) pada seluruh subdirektori dan izin baca `664` (`-rw-rw-r--`) pada berkas aset statis di `public/`.
+  3. Memvalidasi ketersediaan berkas via HTTP GET ke Nginx produksi (mengembalikan `HTTP 200 OK`).
+
 ### [ISSUE-002] Penyesuaian Chatbot RAG: CSRF Mismatch, Markdown Rendering, dan Pemisahan Follow-Up Sapaan
 - **Status:** `RESOLVED`
 - **Tanggal:** 2026-11-07
