@@ -819,16 +819,40 @@ class EducationRagService
             $k = $kecs[0];
 
             return [
+                "Berapa jumlah sekolah dan siswa di Kecamatan {$k}?",
                 "Mengapa rasio gabungan di Kecamatan {$k} berbeda dengan rasio sekolah umumnya?",
-                "Apa saja rekomendasi kritis untuk Kepala Dinas tahun ini?",
-                "Kecamatan mana yang memiliki rasio siswa per guru tertinggi?",
+                "Apa saja rekomendasi kritis untuk Kepala Dinas terkait Kecamatan {$k}?",
+            ];
+        }
+
+        if (in_array('sarana', $topics, true)) {
+            return [
+                'Berapa ruang kelas yang rusak sedang hingga berat di Banjarnegara?',
+                'Berapa estimasi kebutuhan anggaran rehabilitasi 534 ruang kelas?',
+                'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?',
+            ];
+        }
+
+        if (in_array('guru_rasio', $topics, true)) {
+            return [
+                'Kecamatan mana yang memiliki rasio siswa per guru paling tinggi?',
+                'Berapa persen guru di Banjarnegara yang sudah bersertifikat pendidik?',
+                'Bagaimana perbandingan rasio guru riil sekolah umum vs madrasah?',
+            ];
+        }
+
+        if (in_array('rekomendasi', $topics, true)) {
+            return [
+                'Apa 3 keputusan paling kritis untuk Kepala Dinas pada tahun ini?',
+                'Berapa estimasi kebutuhan anggaran rehabilitasi sarana pendidikan?',
+                'Bagaimana rencana penataan dan regrouping 114 SD kecil di Banjarnegara?',
             ];
         }
 
         return [
-            'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?',
-            'Berapa rasio siswa per guru riil sekolah umum jika MI dan MTs dipisahkan?',
-            'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?',
+            'Jelaskan ringkasan kondisi pendidikan Kabupaten Banjarnegara',
+            'Mengapa data guru MI dan MTs belum tercatat di Dapodik?',
+            'Kecamatan mana yang memiliki jumlah sekolah dan siswa terbanyak?',
         ];
     }
 }

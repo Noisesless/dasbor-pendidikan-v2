@@ -67,34 +67,33 @@
             </div>
         </div>
 
-        {{-- Production Debug Console Bar --}}
+        {{-- Production Debug Console Bar (Kompak & Ramping) --}}
         <div x-show="showDebug"
              x-cloak
-             class="px-3.5 py-2.5 bg-slate-950 text-slate-200 border-b border-slate-800 text-[11px] font-mono space-y-1.5 shrink-0">
-            <div class="flex items-center justify-between gap-2">
-                <span class="font-bold text-amber-400 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                    DEBUG MODE (PROD)
-                </span>
-                <button type="button"
-                        @click="testPingServer()"
-                        :disabled="pingLoading"
-                        class="px-2 py-0.5 rounded bg-blue-600/80 hover:bg-blue-600 text-white text-[10px] font-sans font-bold transition cursor-pointer">
-                    <span x-text="pingLoading ? 'Testing...' : 'Test Server & DB'"></span>
-                </button>
+             class="px-3 py-1.5 bg-slate-950 text-slate-200 border-b border-slate-800 text-[10px] font-mono flex items-center justify-between gap-2 shrink-0">
+            <div class="flex items-center gap-2 truncate">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                <template x-if="lastDebug">
+                    <span class="truncate text-slate-300">
+                        <span class="text-amber-300 font-bold" x-text="lastDebug.engine || 'online'"></span>
+                        <span class="text-slate-500">|</span>
+                        <span class="text-blue-300" x-text="lastDebug.model || '-'"></span>
+                        <span class="text-slate-500">|</span>
+                        <span class="text-emerald-300" x-text="(lastDebug.duration_ms || 0) + 'ms'"></span>
+                        <span class="text-slate-500">|</span>
+                        <span class="text-sky-300" x-text="(lastDebug.answer_length || 0) + 'c'"></span>
+                    </span>
+                </template>
+                <template x-if="!lastDebug">
+                    <span class="text-amber-400 font-bold">DEBUG AKTIF (PROD)</span>
+                </template>
             </div>
-            <template x-if="pingStatus">
-                <div class="text-[10px] text-emerald-400 bg-emerald-950/40 p-1.5 rounded border border-emerald-800/40">
-                    <span x-text="'Ping: ' + JSON.stringify(pingStatus)"></span>
-                </div>
-            </template>
-            <template x-if="lastDebug">
-                <div class="text-[10px] text-slate-300 bg-slate-900 p-1.5 rounded border border-slate-800 space-y-0.5">
-                    <div><strong>Engine:</strong> <span class="text-blue-400" x-text="lastDebug.engine || '-'"></span> (<span x-text="lastDebug.model || '-'"></span>)</div>
-                    <div><strong>Latency:</strong> <span class="text-amber-400" x-text="(lastDebug.duration_ms || 0) + ' ms'"></span> | <strong>Chars:</strong> <span x-text="lastDebug.answer_length || 0"></span></div>
-                    <div><strong>Status:</strong> <span class="text-emerald-400" x-text="lastDebug.http_status || '200 OK'"></span></div>
-                </div>
-            </template>
+            <button type="button"
+                    @click="testPingServer()"
+                    :disabled="pingLoading"
+                    class="px-2 py-0.5 rounded bg-blue-600/80 hover:bg-blue-600 text-white text-[10px] font-sans font-bold transition cursor-pointer shrink-0">
+                <span x-text="pingLoading ? '...' : 'Ping DB'"></span>
+            </button>
         </div>
 
         {{-- Messages Container --}}
@@ -102,8 +101,22 @@
             <template x-for="(msg, idx) in messages" :key="idx">
                 <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                     <div :class="msg.role === 'user'
-                            ? 'bg-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%] text-sm leading-relaxed'
+                            ? 'bg-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%] text-sm leading-relaxed shadow-sm'
                             : 'bg-white text-slate-800 border border-slate-200/90 rounded-2xl rounded-bl-sm px-4 py-3 max-w-[92%] text-sm leading-relaxed shadow-2xs'">
+
+                        {{-- Sender & Timestamp Header --}}
+                        <div :class="msg.role === 'user' ? 'text-blue-100 justify-end' : 'text-slate-500 justify-between'"
+                             class="text-[11px] font-semibold mb-1.5 flex items-center gap-1.5">
+                            <span class="flex items-center gap-1" :class="msg.role === 'user' ? 'text-white' : 'text-blue-700 font-bold'">
+                                <template x-if="msg.role !== 'user'">
+                                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                </template>
+                                <span x-text="msg.role === 'user' ? 'Anda' : 'Asisten Data'"></span>
+                            </span>
+                            <span x-show="msg.time" :class="msg.role === 'user' ? 'text-blue-200' : 'text-slate-400'" class="text-[10px] font-normal" x-text="msg.time"></span>
+                        </div>
 
                         {{-- Formatted Content --}}
                         <template x-if="showDebug && msg.debug">
@@ -182,6 +195,10 @@ function educationChatbot() {
             this.resetChat();
         },
 
+        formatTime() {
+            return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        },
+
         resetChat() {
             this.messages = [
                 {
@@ -193,6 +210,7 @@ function educationChatbot() {
                         'Bagaimana perbandingan rasio guru per kecamatan jika siswa MI dan MTs dipisahkan?',
                         'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?'
                     ],
+                    time: this.formatTime(),
                     debug: { engine: 'system-init', model: 'local', duration_ms: 0 }
                 }
             ];
@@ -231,6 +249,7 @@ function educationChatbot() {
             const q = this.input.trim();
             if (!q || this.loading) return;
 
+            const timeNow = this.formatTime();
             this.input = '';
             const historyPayload = this.messages.slice(-4).map(m => ({
                 role: m.role,
@@ -239,7 +258,8 @@ function educationChatbot() {
 
             this.messages.push({
                 role: 'user',
-                text: q
+                text: q,
+                time: timeNow
             });
             this.scrollToBottom();
             this.loading = true;
@@ -283,6 +303,7 @@ function educationChatbot() {
                     text: data.answer || 'Data analisis tidak ditemukan untuk pertanyaan ini.',
                     sources: data.sources || [],
                     followUps: data.follow_ups || [],
+                    time: this.formatTime(),
                     debug: debugData
                 });
             } catch (e) {
@@ -303,6 +324,7 @@ function educationChatbot() {
                         'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?',
                         'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?'
                     ],
+                    time: this.formatTime(),
                     debug: this.lastDebug
                 });
             } finally {
@@ -311,13 +333,23 @@ function educationChatbot() {
             }
         },
 
-        scrollToBottom() {
+        scrollToBottom(smooth = true) {
             this.$nextTick(() => {
                 setTimeout(() => {
-                    if (this.$refs.chatScroll) {
-                        this.$refs.chatScroll.scrollTop = this.$refs.chatScroll.scrollHeight;
+                    const el = this.$refs.chatScroll;
+                    if (el) {
+                        el.scrollTo({
+                            top: el.scrollHeight,
+                            behavior: smooth ? 'smooth' : 'auto'
+                        });
                     }
-                }, 60);
+                }, 50);
+                setTimeout(() => {
+                    const el = this.$refs.chatScroll;
+                    if (el) {
+                        el.scrollTop = el.scrollHeight;
+                    }
+                }, 250);
             });
         },
 
