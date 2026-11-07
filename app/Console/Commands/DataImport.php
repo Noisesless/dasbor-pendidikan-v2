@@ -43,6 +43,10 @@ class DataImport extends Command
         $this->importTeachers($dataDir . '/data_guru_pendidik_banjarnegara.xlsx');
         $this->importPopulations($dataDir . '/data_penduduk_usia_sekolah_2026.xlsx');
 
+        // Selaraskan koordinat sekolah dengan batas kecamatan di GeoJSON.
+        $this->newLine();
+        $this->call('peta:fix-coordinates');
+
         $this->newLine();
         $this->info('Import data selesai.');
 
