@@ -31,6 +31,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/chatbot/ask', [ChatbotController::class, 'ask'])
         ->middleware('throttle:30,1')
         ->name('chatbot.ask');
+    Route::get('/chatbot/ping', [ChatbotController::class, 'ping'])
+        ->name('chatbot.ping');
 
     Route::prefix('analisis')->group(function () {
         Route::get('/gap', [AnalysisController::class, 'gap'])->name('gap');

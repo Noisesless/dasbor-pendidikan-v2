@@ -40,6 +40,7 @@ class EducationRagService
      */
     public function ask(string $question, array $history = []): array
     {
+        $startTime = microtime(true);
         $question = trim($question);
         $retrieval = $this->retrieveContext($question);
 
@@ -47,21 +48,42 @@ class EducationRagService
 
         // 1. Coba Online RAG dengan multi-model cascade jika API key tersedia
         if ($apiKey !== '') {
-            $onlineAnswer = $this->callGeminiCascade($question, $retrieval['context_text'], $history, $apiKey);
-            if ($onlineAnswer !== null) {
+            $onlineResult = $this->callGeminiCascade($question, $retrieval['context_text'], $history, $apiKey);
+            if ($onlineResult !== null) {
+                $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+
                 return [
-                    'answer' => $onlineAnswer,
+                    'answer' => $onlineResult['answer'],
                     'sources' => $retrieval['sources'],
                     'follow_ups' => $retrieval['follow_ups'],
+                    'debug' => [
+                        'engine' => 'online-gemini',
+                        'model' => $onlineResult['model'],
+                        'duration_ms' => $durationMs,
+                        'history_count' => count($history),
+                        'answer_length' => strlen($onlineResult['answer']),
+                        'timestamp' => now()->toIso8601String(),
+                    ],
                 ];
             }
         }
 
         // 2. Fallback mulus ke Offline RAG menggunakan query analitis dinamis
+        $offlineAnswer = $this->synthesizeOffline($question, $retrieval);
+        $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+
         return [
-            'answer' => $this->synthesizeOffline($question, $retrieval),
+            'answer' => $offlineAnswer,
             'sources' => $retrieval['sources'],
             'follow_ups' => $retrieval['follow_ups'],
+            'debug' => [
+                'engine' => 'offline-database',
+                'model' => 'sqlite-indexed-query',
+                'duration_ms' => $durationMs,
+                'history_count' => count($history),
+                'answer_length' => strlen($offlineAnswer),
+                'timestamp' => now()->toIso8601String(),
+            ],
         ];
     }
 
@@ -172,8 +194,9 @@ class EducationRagService
      * Jika satu model mengalami timeout, kuota habis (429), atau error, otomatis beralih ke model berikutnya.
      *
      * @param  array<int, array{role: string, text: string}>  $history
+     * @return array{answer: string, model: string}|null
      */
-    private function callGeminiCascade(string $question, string $contextText, array $history, string $apiKey): ?string
+    private function callGeminiCascade(string $question, string $contextText, array $history, string $apiKey): ?array
     {
         $systemPrompt = "Anda adalah Asisten Analitik Data Pendidikan Kabupaten Banjarnegara pada aplikasi Dasbor Pendidikan (pendidikan.sistemdata.id).\n\n"
             . "PANDUAN UTAMA BERKOMUNIKASI:\n"
@@ -250,7 +273,10 @@ class EducationRagService
                 if ($response->successful()) {
                     $text = data_get($response->json(), 'candidates.0.content.parts.0.text');
                     if (is_string($text) && trim($text) !== '') {
-                        return trim($text);
+                        return [
+                            'answer' => trim($text),
+                            'model' => $model,
+                        ];
                     }
                 }
             } catch (\Throwable $e) {

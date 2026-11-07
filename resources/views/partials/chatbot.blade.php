@@ -40,6 +40,15 @@
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
                 <button type="button"
+                        @click="showDebug = !showDebug"
+                        :class="showDebug ? 'text-amber-400 bg-slate-800 ring-1 ring-amber-400/50' : 'text-slate-400 hover:text-white hover:bg-slate-800'"
+                        title="Mode Debugging Analitik (Production)"
+                        class="p-1.5 rounded-lg transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                    </svg>
+                </button>
+                <button type="button"
                         @click="resetChat()"
                         title="Bersihkan percakapan"
                         class="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer">
@@ -58,6 +67,36 @@
             </div>
         </div>
 
+        {{-- Production Debug Console Bar --}}
+        <div x-show="showDebug"
+             x-cloak
+             class="px-3.5 py-2.5 bg-slate-950 text-slate-200 border-b border-slate-800 text-[11px] font-mono space-y-1.5 shrink-0">
+            <div class="flex items-center justify-between gap-2">
+                <span class="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    DEBUG MODE (PROD)
+                </span>
+                <button type="button"
+                        @click="testPingServer()"
+                        :disabled="pingLoading"
+                        class="px-2 py-0.5 rounded bg-blue-600/80 hover:bg-blue-600 text-white text-[10px] font-sans font-bold transition cursor-pointer">
+                    <span x-text="pingLoading ? 'Testing...' : 'Test Server & DB'"></span>
+                </button>
+            </div>
+            <template x-if="pingStatus">
+                <div class="text-[10px] text-emerald-400 bg-emerald-950/40 p-1.5 rounded border border-emerald-800/40">
+                    <span x-text="'Ping: ' + JSON.stringify(pingStatus)"></span>
+                </div>
+            </template>
+            <template x-if="lastDebug">
+                <div class="text-[10px] text-slate-300 bg-slate-900 p-1.5 rounded border border-slate-800 space-y-0.5">
+                    <div><strong>Engine:</strong> <span class="text-blue-400" x-text="lastDebug.engine || '-'"></span> (<span x-text="lastDebug.model || '-'"></span>)</div>
+                    <div><strong>Latency:</strong> <span class="text-amber-400" x-text="(lastDebug.duration_ms || 0) + ' ms'"></span> | <strong>Chars:</strong> <span x-text="lastDebug.answer_length || 0"></span></div>
+                    <div><strong>Status:</strong> <span class="text-emerald-400" x-text="lastDebug.http_status || '200 OK'"></span></div>
+                </div>
+            </template>
+        </div>
+
         {{-- Messages Container --}}
         <div x-ref="chatScroll" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
             <template x-for="(msg, idx) in messages" :key="idx">
@@ -67,6 +106,13 @@
                             : 'bg-white text-slate-800 border border-slate-200/90 rounded-2xl rounded-bl-sm px-4 py-3 max-w-[92%] text-sm leading-relaxed shadow-2xs'">
 
                         {{-- Formatted Content --}}
+                        <template x-if="showDebug && msg.debug">
+                            <div class="mb-2 px-2 py-1 rounded bg-slate-900 text-amber-300 font-mono text-[10px] border border-slate-800 flex items-center justify-between">
+                                <span x-text="'⚡ ' + (msg.debug.engine || '-') + ' (' + (msg.debug.model || '-') + ')'"></span>
+                                <span x-text="(msg.debug.duration_ms || 0) + 'ms'"></span>
+                            </div>
+                        </template>
+
                         <div class="space-y-2 chatbot-content" x-html="renderMarkdown(msg.text)"></div>
 
                         {{-- Sources --}}
@@ -125,6 +171,10 @@ function educationChatbot() {
     return {
         isOpen: false,
         loading: false,
+        showDebug: false,
+        pingLoading: false,
+        pingStatus: null,
+        lastDebug: null,
         input: '',
         messages: [],
 
@@ -142,7 +192,8 @@ function educationChatbot() {
                         'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?',
                         'Bagaimana perbandingan rasio guru per kecamatan jika siswa MI dan MTs dipisahkan?',
                         'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?'
-                    ]
+                    ],
+                    debug: { engine: 'system-init', model: 'local', duration_ms: 0 }
                 }
             ];
         },
@@ -158,6 +209,22 @@ function educationChatbot() {
             if (this.loading) return;
             this.input = text;
             this.submitQuestion();
+        },
+
+        async testPingServer() {
+            this.pingLoading = true;
+            this.pingStatus = null;
+            try {
+                const res = await fetch('{{ route("chatbot.ping") }}', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const json = await res.json();
+                this.pingStatus = json;
+            } catch (err) {
+                this.pingStatus = { error: err.message };
+            } finally {
+                this.pingLoading = false;
+            }
         },
 
         async submitQuestion() {
@@ -177,6 +244,8 @@ function educationChatbot() {
             this.scrollToBottom();
             this.loading = true;
 
+            const startTime = performance.now();
+
             try {
                 const res = await fetch('{{ route("chatbot.ask") }}', {
                     method: 'POST',
@@ -191,28 +260,50 @@ function educationChatbot() {
                     })
                 });
 
+                const durationMs = Math.round(performance.now() - startTime);
+
                 if (!res.ok) {
-                    throw new Error('Request failed with status ' + res.status);
+                    throw new Error('HTTP ' + res.status + ' (' + res.statusText + ')');
                 }
 
                 const data = await res.json();
+                const debugData = data.debug || {
+                    engine: 'api-response',
+                    model: 'default',
+                    duration_ms: durationMs,
+                    answer_length: (data.answer || '').length
+                };
+                debugData.http_status = '200 OK';
+                debugData.client_ms = durationMs;
+
+                this.lastDebug = debugData;
 
                 this.messages.push({
                     role: 'model',
-                    text: data.answer || 'Data tidak ditemukan.',
+                    text: data.answer || 'Data analisis tidak ditemukan untuk pertanyaan ini.',
                     sources: data.sources || [],
-                    followUps: data.follow_ups || []
+                    followUps: data.follow_ups || [],
+                    debug: debugData
                 });
             } catch (e) {
+                const durationMs = Math.round(performance.now() - startTime);
+                this.lastDebug = {
+                    engine: 'client-error',
+                    model: e.message,
+                    http_status: 'FAILED',
+                    duration_ms: durationMs
+                };
+
                 this.messages.push({
                     role: 'model',
-                    text: 'Mohon maaf, saat ini sistem sedang memproses antrean data. Silakan kirim ulang pertanyaan Anda dalam beberapa saat.',
+                    text: 'Mohon maaf, saat ini sistem sedang memproses antrean data. Silakan kirim ulang pertanyaan Anda dalam beberapa saat.' + (this.showDebug ? '\n\n`[DEBUG ERROR: ' + e.message + ']`' : ''),
                     sources: ['Sistem Data Banjarnegara'],
                     followUps: [
                         'Bagaimana perbandingan rasio guru per kecamatan jika siswa MI dan MTs dipisahkan?',
                         'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?',
                         'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?'
-                    ]
+                    ],
+                    debug: this.lastDebug
                 });
             } finally {
                 this.loading = false;
@@ -222,34 +313,74 @@ function educationChatbot() {
 
         scrollToBottom() {
             this.$nextTick(() => {
-                if (this.$refs.chatScroll) {
-                    this.$refs.chatScroll.scrollTop = this.$refs.chatScroll.scrollHeight;
-                }
+                setTimeout(() => {
+                    if (this.$refs.chatScroll) {
+                        this.$refs.chatScroll.scrollTop = this.$refs.chatScroll.scrollHeight;
+                    }
+                }, 60);
             });
         },
 
         renderMarkdown(raw) {
             if (!raw) return '';
-            const escaped = String(raw)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
+            try {
+                let text = String(raw)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
 
-            const formatted = escaped
-                .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>')
-                .replace(/`([^`]+)`/g, '<code class="font-mono text-xs bg-slate-100 text-slate-800 px-1 py-0.5 rounded">$1</code>');
+                // Headings
+                text = text.replace(/^###\s+(.+)$/gm, '<h4 class="font-bold text-slate-900 mt-2 text-sm">$1</h4>');
+                text = text.replace(/^##\s+(.+)$/gm, '<h3 class="font-bold text-slate-900 mt-2.5 text-base">$1</h3>');
 
-            return formatted
-                .split(/\n\n+/)
-                .map(block => {
-                    const lines = block.split('\n');
-                    if (lines.every(l => /^\s*[-*]\s+/.test(l))) {
-                        const items = lines.map(l => '<li class="ml-4 list-disc">' + l.replace(/^\s*[-*]\s+/, '') + '</li>').join('');
-                        return '<ul class="space-y-1">' + items + '</ul>';
-                    }
-                    return '<p>' + lines.join('<br>') + '</p>';
-                })
-                .join('');
+                // Horizontal Rule
+                text = text.replace(/^---$/gm, '<hr class="my-2 border-slate-200">');
+
+                // Bold & Inline Code
+                text = text.replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>');
+                text = text.replace(/`([^`]+)`/g, '<code class="font-mono text-xs bg-slate-100 text-slate-800 px-1 py-0.5 rounded border border-slate-200">$1</code>');
+
+                // Tables
+                if (text.includes('|')) {
+                    text = text.replace(/((?:\|[^\n]+\|\n?)+)/g, function(match) {
+                        const rows = match.trim().split('\n').filter(r => r.includes('|'));
+                        if (rows.length < 2) return match;
+                        let html = '<div class="overflow-x-auto my-2 rounded border border-slate-200"><table class="w-full text-xs text-left border-collapse">';
+                        rows.forEach((row, rIdx) => {
+                            if (row.includes('---')) return; // separator
+                            const cols = row.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
+                            if (cols.length === 0) return;
+                            html += '<tr class="' + (rIdx === 0 ? 'bg-slate-100 font-bold border-b border-slate-200' : 'border-b border-slate-100 hover:bg-slate-50') + '">';
+                            cols.forEach(col => {
+                                html += rIdx === 0 ? '<th class="px-2 py-1.5">' + col + '</th>' : '<td class="px-2 py-1.5">' + col + '</td>';
+                            });
+                            html += '</tr>';
+                        });
+                        html += '</table></div>';
+                        return html;
+                    });
+                }
+
+                // Paragraphs & Lists
+                return text
+                    .split(/\n\n+/)
+                    .map(block => {
+                        const lines = block.split('\n');
+                        if (lines.every(l => /^\s*[-*]\s+/.test(l))) {
+                            const items = lines.map(l => '<li class="ml-4 list-disc">' + l.replace(/^\s*[-*]\s+/, '') + '</li>').join('');
+                            return '<ul class="space-y-1 my-1">' + items + '</ul>';
+                        }
+                        if (lines.every(l => /^\s*\d+\.\s+/.test(l))) {
+                            const items = lines.map(l => '<li class="ml-4 list-decimal">' + l.replace(/^\s*\d+\.\s+/, '') + '</li>').join('');
+                            return '<ol class="space-y-1 my-1">' + items + '</ol>';
+                        }
+                        return '<p>' + lines.join('<br>') + '</p>';
+                    })
+                    .join('');
+            } catch (err) {
+                console.error('Markdown format error:', err);
+                return String(raw).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            }
         }
     };
 }
