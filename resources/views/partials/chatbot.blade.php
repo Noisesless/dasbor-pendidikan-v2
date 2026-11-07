@@ -138,13 +138,19 @@
                             </div>
                         </template>
 
-                        {{-- Follow-up Suggestions --}}
-                        <template x-if="msg.followUps && msg.followUps.length">
-                            <div class="mt-2.5 space-y-1">
+                        {{-- Follow-up Suggestions (Hanya tampil pada pesan sambutan pembuka) --}}
+                        <template x-if="idx === 0 && msg.followUps && msg.followUps.length">
+                            <div class="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
+                                <div class="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+                                    <svg class="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                    <span>Pilihan Analisis Populer:</span>
+                                </div>
                                 <template x-for="(q, fIdx) in msg.followUps" :key="fIdx">
                                     <button type="button"
                                             @click="sendQuick(q)"
-                                            class="block w-full text-left rounded-lg border border-blue-100 bg-blue-50/60 hover:bg-blue-100/70 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition cursor-pointer"
+                                            class="block w-full text-left rounded-xl border border-blue-100 bg-blue-50/70 hover:bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-800 transition cursor-pointer shadow-2xs"
                                             x-text="q"></button>
                                 </template>
                             </div>
@@ -302,7 +308,6 @@ function educationChatbot() {
                     role: 'model',
                     text: data.answer || 'Data analisis tidak ditemukan untuk pertanyaan ini.',
                     sources: data.sources || [],
-                    followUps: data.follow_ups || [],
                     time: this.formatTime(),
                     debug: debugData
                 });
@@ -319,11 +324,6 @@ function educationChatbot() {
                     role: 'model',
                     text: 'Mohon maaf, saat ini sistem sedang memproses antrean data. Silakan kirim ulang pertanyaan Anda dalam beberapa saat.' + (this.showDebug ? '\n\n`[DEBUG ERROR: ' + e.message + ']`' : ''),
                     sources: ['Sistem Data Banjarnegara'],
-                    followUps: [
-                        'Bagaimana perbandingan rasio guru per kecamatan jika siswa MI dan MTs dipisahkan?',
-                        'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?',
-                        'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?'
-                    ],
                     time: this.formatTime(),
                     debug: this.lastDebug
                 });
