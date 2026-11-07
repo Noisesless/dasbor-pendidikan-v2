@@ -145,7 +145,11 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
                 <h3 class="font-bold text-slate-900">Tabel Variabel</h3>
-                <p class="text-xs text-slate-500 mt-0.5">{{ number_format(count($tableRows)) }} baris ditampilkan (maks. 200)</p>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Menampilkan {{ $paginator->firstItem() ?? 0 }}&ndash;{{ $paginator->lastItem() ?? 0 }}
+                    dari {{ number_format($paginator->total()) }} variabel
+                    @if ($q !== '') &middot; hasil pencarian &ldquo;{{ $q }}&rdquo; @endif
+                </p>
             </div>
             <form method="GET" action="{{ route('walidata') }}" class="flex gap-2">
                 <input
@@ -158,7 +162,7 @@
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shrink-0">Cari</button>
             </form>
         </div>
-        <div class="overflow-x-auto overflow-y-auto max-h-[480px] rounded-xl border border-slate-100">
+        <div class="overflow-x-auto rounded-xl border border-slate-100">
             <table class="w-full text-sm">
                 <thead class="sticky top-0 bg-slate-50/95 backdrop-blur z-10">
                     <tr class="text-left text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
@@ -192,6 +196,12 @@
                 </tbody>
             </table>
         </div>
+
+        @if ($paginator->hasPages())
+            <div class="mt-4">
+                {{ $paginator->links() }}
+            </div>
+        @endif
     </div>
 @endsection
 

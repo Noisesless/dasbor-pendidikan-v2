@@ -8,6 +8,7 @@ use App\Services\DindikporaParser;
 use App\Services\KemenagParser;
 use App\Services\WalidataPendidikan;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class AnalysisController extends Controller
 {
@@ -551,18 +552,29 @@ class AnalysisController extends Controller
             }
         }
 
-        // Tabel variabel (maks 200 baris, mendukung pencarian)
+        // Tabel variabel (paginasi + pencarian)
         $q = trim((string) $request->query('q', ''));
-        $tableRows = collect($all);
+        $filtered = collect($all);
         if ($q !== '') {
             $ql = strtolower($q);
-            $tableRows = $tableRows->filter(function ($r) use ($ql) {
+            $filtered = $filtered->filter(function ($r) use ($ql) {
                 return str_contains(strtolower((string) $r['kode']), $ql)
                     || str_contains(strtolower((string) $r['uraian']), $ql);
             });
         }
+
+        $perPage = 25;
+        $page = max(1, (int) $request->query('page', 1));
+        $paginator = new LengthAwarePaginator(
+            $filtered->forPage($page, $perPage)->values(),
+            $filtered->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
         $recentYears = array_slice($years, -6);
-        $tableRows = $tableRows->take(200)->values()->map(function ($r) use ($recentYears) {
+        $tableRows = collect($paginator->items())->map(function ($r) use ($recentYears) {
             $recent = [];
             $max = 0;
             foreach ($recentYears as $y) {
@@ -587,6 +599,7 @@ class AnalysisController extends Controller
             'pieData' => $pieData,
             'indicatorTrends' => $indicatorTrends,
             'tableRows' => $tableRows,
+            'paginator' => $paginator,
             'q' => $q,
         ]);
     }
