@@ -170,8 +170,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize map centered on Banjarnegara
     const map = L.map('sekolahMap').setView([-7.3833, 109.6667], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
     // Choropleth colors based on school count

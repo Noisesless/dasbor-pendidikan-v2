@@ -1,58 +1,78 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Dasbor Pendidikan Kabupaten Banjarnegara
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi analitik dan pemetaan satuan pendidikan, peserta didik, pendidik, serta indikator makro pendidikan Kabupaten Banjarnegara berbasis data Dapodik, EMIS Kemenag, Disarpus, dan BPS.
 
-## About Laravel
+## Fitur Utama
+- **Ringkasan Eksekutif (`/`)**: Agregasi satuan pendidikan, peserta didik, pendidik, rombongan belajar, dan rasio murid per guru lintas semester dan kecamatan.
+- **Rekomendasi untuk Kepala Dinas (`/rekomendasi`)**: Sintesis prioritas aksi eksekutif lintas indikator (kekurangan guru, kualitas data, sarana-prasarana, kandidat regrouping, dan kesenjangan partisipasi).
+- **Demografi Peserta Didik (`/demografi`)**: Distribusi siswa menurut kelompok usia sekolah (5–6, 7–12, 13–15, 16–18 tahun), komposisi jenis kelamin, dan proyeksi penduduk usia sekolah.
+- **Infrastruktur & Satuan Pendidikan (`/infrastruktur`)**: Sebaran sekolah negeri dan swasta per jenjang (PAUD, TK, SD, SMP, SMA, SMK, MI, MTs, MA, PKBM) dan profil akreditasi.
+- **Ketenagakerjaan Guru (`/guru`)**: Komposisi status kepegawaian (PNS, PPPK, GTY, GTT, Honor), tingkat sertifikasi pendidik, dan beban mengajar per wilayah.
+- **Peta Sebaran Spasial (`/peta`)**: Peta interaktif mode Choropleth & Heatmap kepadatan siswa pada batas administrasi 20 kecamatan (GeoJSON) serta titik koordinat 2.054 sekolah menggunakan Leaflet dan OpenStreetMap Contributors.
+- **Modul Analisis Mendalam (`/analisis/*`)**:
+  - Analisis Gap Layanan (`/analisis/gap`)
+  - Risiko Angka Putus Sekolah (`/analisis/angka-keluar`)
+  - Literasi & Perpustakaan Daerah (`/analisis/literasi`)
+  - Pendidikan Keagamaan & Madrasah (`/analisis/madrasah`)
+  - Indikator Makro Pendidikan — APK, APM, RLS, HLS, IPM (`/analisis/indikator`)
+  - Akreditasi PAUD & Pendidikan Anak Usia Dini (`/analisis/akreditasi-paud`)
+  - Katalog Walidata Pendidikan (`/analisis/walidata`)
+  - Rekomendasi Kebijakan Daerah (`/analisis/kebijakan`)
+  - Analisis Kualitas Data (`/analisis/data-health`)
+  - Analisis Sarana & Anggaran (`/analisis/sarana`)
+  - Analisis Kandidat Regrouping Sekolah (`/analisis/regrouping`)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech Stack
+- **Frontend:** Blade Templates, Tailwind CSS v4 (`@tailwindcss/vite`), Alpine.js 3.14, Chart.js 4, Leaflet 1.9.4 (OpenStreetMap Contributors)
+- **Backend:** PHP 8.3+ / 8.5, Laravel 13.x (`laravel/framework ^13.17`), OpenSpout v5 (`openspout/openspout ^5.13`)
+- **Database:** SQLite / MariaDB / MySQL
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Prasyarat
+- PHP >= 8.3 (ekstensi `pdo_sqlite` / `pdo_mysql`, `mbstring`, `xml`, `zip`, `bcmath`)
+- Composer 2.x
+- Node.js >= 20.x & npm
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Instalasi Lokal
+1. Salin berkas environment:
+   ```bash
+   cp .env.example .env
+   ```
+2. Isi nilai variabel di `.env` sesuai konfigurasi lokal Anda.
+3. Instal dependensi, jalankan migrasi, dan impor data Dapodik/Master:
+   ```bash
+   composer install
+   php artisan key:generate
+   php artisan migrate --force
+   php artisan db:seed --force
+   php artisan data:import
+   npm install --ignore-scripts
+   npm run build
+   ```
+4. Jalankan server development:
+   ```bash
+   php artisan serve --port=8080
+   ```
 
-## Learning Laravel
+## Perintah Artisan Utama
+| Perintah | Fungsi |
+|---|---|
+| `php artisan data:import` | Mengimpor seluruh data Dapodik (CSV multi-semester & Excel) ke tabel `schools`, `student_stats`, `teacher_stats`, `teachers`, dan `populations` |
+| `php artisan masterdata:import` | Mengimpor data pengaya lintas instansi (Dindikpora, Kemenag, BPS) ke tabel `regional_education_stats` dan `regional_indicators` |
+| `php artisan simudik:import` | Melengkapi direktori satuan pendidikan (termasuk nomor telepon sekolah) dari data publik SIMU-DIK Banjarnegara (`storage/app/data/simudik/*.json`) |
+| `php artisan peta:fix-coordinates` | Memvalidasi dan mengoreksi titik koordinat sekolah agar presisi di dalam poligon GeoJSON masing-masing kecamatan |
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Variabel Environment
+> Nilai asli hanya disimpan di berkas `.env` lokal/server (tidak di-commit). Lihat `.env.example` untuk daftar lengkap.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Variabel | Wajib | Sumber Nilai | Keterangan |
+|---|---|---|---|
+| `APP_ENV` | Ya | Konfigurasi environment | Mode aplikasi (`local` atau `production`) |
+| `APP_DEBUG` | Ya | Konfigurasi environment | `true` untuk lokal, `false` untuk produksi |
+| `APP_URL` | Ya | Domain aplikasi | URL dasar aplikasi |
+| `DB_CONNECTION` | Ya | Konfigurasi database | Driver database (`sqlite` atau `mysql`) |
+| `DB_DATABASE` | Ya | Konfigurasi database | Path berkas SQLite atau nama database MySQL/MariaDB |
+| `SEED_ADMIN_EMAIL` | Opsional | Administrator sistem | Email akun awal saat menjalankan database seeder |
+| `SEED_ADMIN_PASSWORD` | Opsional | Administrator sistem | Kata sandi akun awal saat menjalankan database seeder |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
-```
-
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Akun Awal (Seeder)
+Akun awal dibuat melalui database seeder menggunakan variabel `SEED_ADMIN_EMAIL` dan `SEED_ADMIN_PASSWORD` yang diatur pada berkas `.env`. Jangan gunakan kredensial development di lingkungan produksi.

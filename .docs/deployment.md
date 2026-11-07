@@ -1,0 +1,74 @@
+# Panduan Deployment Produksi — Dasbor Pendidikan Kabupaten Banjarnegara v2
+
+> **Peringatan Keamanan (SP-032 & SP-033):** Dokumen ini tidak memuat nilai kredensial, kata sandi, kunci rahasia, maupun informasi sensitif server produksi. Seluruh nilai rahasia wajib dikonfigurasi langsung pada berkas `.env` di server target.
+
+---
+
+## 1. Spesifikasi Lingkungan Server
+- **Web Server:** Nginx (dengan dukungan HTTP/2 & SSL/TLS Let's Encrypt)
+- **Runtime PHP:** PHP 8.3 / 8.4 / 8.5 (`php-fpm`, `pdo_sqlite` / `pdo_mysql`, `mbstring`, `xml`, `zip`, `bcmath`, `intl`)
+- **Database:** SQLite (`database/database.sqlite` dengan izin tulis bagi user PHP-FPM) atau MariaDB/MySQL
+- **Build Tool Frontend:** Node.js >= 20.x & Vite (`npm run build` menghasilkan `public/build/manifest.json`)
+
+---
+
+## 2. Daftar Variabel Environment
+| Variabel | Wajib | Sumber Nilai | Keterangan |
+|---|---|---|---|
+| `APP_NAME` | Ya | Konfigurasi aplikasi | Nama aplikasi pada header & sesi |
+| `APP_ENV` | Ya | Konfigurasi server | Wajib diset ke `production` di server produksi |
+| `APP_KEY` | Ya | `php artisan key:generate` | Kunci enkripsi 32-byte (`base64:...`) |
+| `APP_DEBUG` | Ya | Konfigurasi server | Wajib diset ke `false` di server produksi |
+| `APP_URL` | Ya | Domain resmi | URL HTTPS penuh aplikasi produksi |
+| `DB_CONNECTION` | Ya | Konfigurasi database | `sqlite` atau `mysql` |
+| `DB_DATABASE` | Ya | Konfigurasi database | Path berkas SQLite atau nama database MySQL/MariaDB |
+| `SESSION_DRIVER` | Ya | Konfigurasi sesi | `database` atau `file` |
+| `SEED_ADMIN_EMAIL` | Opsional | Administrator sistem | Email akun awal untuk `db:seed` |
+| `SEED_ADMIN_PASSWORD` | Opsional | Administrator sistem | Kata sandi akun awal untuk `db:seed` |
+
+---
+
+## 3. Langkah Deployment Standar
+1. **Kompilasi Aset Frontend:**
+   ```bash
+   npm install --ignore-scripts
+   npm run build
+   ```
+2. **Instalasi Dependensi PHP Produksi:**
+   ```bash
+   composer install --no-dev --optimize-autoloader --no-interaction
+   ```
+3. **Konfigurasi Environment & Kunci Aplikasi:**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate --force
+   ```
+4. **Migrasi Skema & Ingesti Data:**
+   ```bash
+   php artisan migrate --force
+   php artisan db:seed --force
+   php artisan data:import
+   php artisan masterdata:import
+   php artisan simudik:import
+   ```
+5. **Optimasi Cache Produksi:**
+   ```bash
+   php artisan config:cache
+   php artisan route:cache
+   php artisan view:cache
+   ```
+
+---
+
+## 4. Konfigurasi Header Nginx untuk Peta OpenStreetMap (`/peta`)
+Server tile resmi **OpenStreetMap Contributors** (`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`) mewajibkan browser mengirimkan HTTP `Referer` header. Pastikan konfigurasi Nginx menggunakan kebijakan berikut (bukan `same-origin` atau `no-referrer`):
+
+```nginx
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+```
+
+Selain itu, layout utama [`resources/views/layouts/app.blade.php`](../resources/views/layouts/app.blade.php#L6) telah menyertakan:
+```html
+<meta name="referrer" content="strict-origin-when-cross-origin">
+```
+

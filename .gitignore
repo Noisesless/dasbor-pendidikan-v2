@@ -1,8 +1,10 @@
 *.log
+*.sqlite
+*.db
 .DS_Store
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
 .phpactor.json
 .phpunit.result.cache
 /.codex
@@ -10,6 +12,7 @@
 /.idea
 /.nova
 /.phpunit.cache
+/.scratchpad/
 /.vscode
 /.zed
 /auth.json
@@ -25,3 +28,8 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+app-context.md
+handover.md
+issues.md
+prd.md
+todo.md
