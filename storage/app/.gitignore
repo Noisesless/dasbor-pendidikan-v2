@@ -3,4 +3,6 @@
 !public/
 !data/
 !data/**
+!certs/
+!certs/cacert.pem
 !.gitignore

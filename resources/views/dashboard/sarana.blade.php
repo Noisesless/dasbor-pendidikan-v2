@@ -169,6 +169,7 @@
         <li>Kondisi ruang kelas bersumber dari Walidata (agregat kabupaten) &mdash; <b>tidak tersedia per sekolah</b>, sehingga tidak bisa dipetakan.</li>
         <li>Kebutuhan ruang kelas = siswa &divide; target siswa per rombel; defisit = kebutuhan &minus; ruang kelas tersedia.</li>
         <li>Unit cost adalah <b>parameter yang dapat diubah</b>, bukan angka resmi RAB. Ganti sesuai standar harga setempat sebelum dipakai untuk penganggaran.</li>
+        <li>SIMU-DIK (<span class="font-mono text-xs">simudik.banjarnegarakab.go.id</span>) memuat data kerusakan sarana-prasarana per sekolah, tetapi modulnya berada di area administrator &mdash; endpoint publiknya hanya membuka direktori sekolah. Angka di halaman ini belum direkonsiliasi dengan SIMU-DIK.</li>
     </ul>
 </div>
 @endsection
