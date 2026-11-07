@@ -10,10 +10,20 @@
         return str_ends_with($s, ',00') ? substr($s, 0, -3) : $s;
     };
 
-    $trendYears = collect($flatTrend)->pluck('year')->all();
-    $trendValues = collect($flatTrend)->pluck('value')->all();
-    $lastTrend = $flatTrend ? end($flatTrend) : null;
-    $prevTrend = count($flatTrend) >= 2 ? $flatTrend[count($flatTrend) - 2] : null;
+    $activeYears = ['2020', '2021', '2022', '2023'];
+    $filteredTrend = array_values(array_filter($flatTrend, fn($t) => in_array($t['year'], $activeYears)));
+    $trendYears = array_column($filteredTrend, 'year');
+    $trendValues = array_map(fn($t) => (float) $t['value'], $filteredTrend);
+    $filteredIndicatorTrends = collect($indicatorTrends)->map(function ($t) use ($activeYears, $years) {
+        $data = [];
+        foreach ($activeYears as $y) {
+            $idx = array_search($y, $years);
+            $data[] = $idx !== false ? ($t['data'][$idx] ?? 0) : 0;
+        }
+        return ['label' => $t['label'], 'data' => $data];
+    })->values()->all();
+    $lastTrend = $filteredTrend ? end($filteredTrend) : null;
+    $prevTrend = count($filteredTrend) >= 2 ? $filteredTrend[count($filteredTrend) - 2] : null;
     $latestYear = $lastTrend['year'] ?? null;
     $deltaTrend = ($lastTrend && $prevTrend && $prevTrend['value'] > 0)
         ? round(($lastTrend['value'] - $prevTrend['value']) / $prevTrend['value'] * 100, 1)
@@ -148,9 +158,9 @@
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shrink-0">Cari</button>
             </form>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto overflow-y-auto max-h-[480px] rounded-xl border border-slate-100">
             <table class="w-full text-sm">
-                <thead>
+                <thead class="sticky top-0 bg-slate-50/95 backdrop-blur z-10">
                     <tr class="text-left text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                         <th class="py-3 pr-4">Kode</th>
                         <th class="py-3 px-4">Uraian</th>
@@ -259,11 +269,11 @@
 
         const indikatorCtx = document.getElementById('chartIndikator');
         if (indikatorCtx) {
-            const indicatorTrends = @json($indicatorTrends);
+            const indicatorTrends = @json($filteredIndicatorTrends);
             new Chart(indikatorCtx, {
                 type: 'line',
                 data: {
-                    labels: @json($years),
+                    labels: @json($activeYears),
                     datasets: indicatorTrends.map(function (s, i) {
                         return {
                             label: s.label,
