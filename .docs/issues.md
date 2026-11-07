@@ -8,6 +8,21 @@
 
 ## Riwayat Isu Terselesaikan (`RESOLVED`)
 
+### [ISSUE-004] UX Chatbot Terlihat "Kembali ke Awal / Tidak Menjawab", Debug Mode di UI Publik, dan Kueri RAG Statis
+- **Status:** `RESOLVED`
+- **Tanggal:** 2026-11-07
+- **Komponen Terdampak:**
+  - [`resources/views/partials/chatbot.blade.php`](../resources/views/partials/chatbot.blade.php)
+  - [`app/Services/EducationRagService.php`](../app/Services/EducationRagService.php)
+- **Akar Masalah:**
+  1. Tombol saran pertanyaan bawaan (`follow_ups`) dirender berulang di bawah setiap balon jawaban bot (`x-for="(q, qIdx) in msg.followUps"`). Hal ini menciptakan ilusi optik seolah chatbot mengulang pesan pembuka dan menutupi teks jawaban pengguna yang berada di atasnya.
+  2. Bilah horizontal `DEBUG MODE (PROD)` dan tombol toggle `< />` di header chatbot masih tampil di antarmuka produksi sehingga mengurangi kerapian visual bagi pengguna umum.
+  3. Logika kueri analitik offline dan deteksi semester masih mengacu pada konstanta baseline statis (`20252`), sementara data mutakhir di tabel `student_stats` sudah mencapai semester `20261`.
+- **Solusi yang Diterapkan:**
+  1. Membatasi rendering tombol saran pertanyaan bawaan **hanya pada pesan pembuka awal (`idx === 0`)**. Pada giliran percakapan berikutnya (`idx > 0`), tombol template dihapus total sehingga pengguna langsung melihat jawaban bot dengan jelas.
+  2. Menghapus seluruh tombol toggle debug mode, bilah status latensi server, dan badge debug dari antarmuka pengguna demi tampilan publik yang bersih (*clean user-facing UI*).
+  3. Mengubah penentuan semester menjadi dinamis via method `getActiveSemester()` (`DB::table('student_stats')->max('semester') ?: self::BASELINE_SEMESTER`), serta menambahkan kueri agregasi dinamis untuk kombinasi jenjang per kecamatan, jenjang kabupaten, status kepegawaian guru, akreditasi sekolah, dan indikator makro BPS tanpa angka hardcode.
+
 ### [ISSUE-003] HTTP 403 Forbidden pada Static Asset Bundling Vite (`public/build/assets`)
 - **Status:** `RESOLVED`
 - **Tanggal:** 2026-11-07

@@ -60,9 +60,30 @@
    php artisan view:cache
    ```
 
+6. **Pengaturan Izin Berkas Direktori & Aset Statis (POSIX DAC):**
+   ```bash
+   # Pastikan kepemilikan user dan group web server (misalnya siste563476kan:siste563476kan)
+   chown -R siste563476kan:siste563476kan public/build storage bootstrap/cache
+   # Direktori wajib memiliki permission 775 agar www-data dapat melakukan traversal
+   find public/build storage bootstrap/cache -type d -exec chmod 775 {} +
+   # Berkas aset wajib memiliki permission 664 agar dapat dibaca oleh Nginx
+   find public/build -type f -exec chmod 664 {} +
+   ```
+
 ---
 
-## 4. Konfigurasi Header Nginx untuk Peta OpenStreetMap (`/peta`)
+## 4. Hak Akses & Izin Berkas Produksi (Mencegah HTTP 403 Forbidden)
+Pada lingkungan Debian / CloudPanel di mana pekerja Nginx berjalan sebagai user `www-data` (anggota grup pemilik direktori situs), evaluasi izin Linux POSIX DAC memprioritaskan grup file sebelum bit *others*.
+Jika izin direktori adalah `drwx---rwx` atau berkas `----------`, Nginx akan menolak akses dengan respons `403 Forbidden`.
+
+Pedoman izin yang wajib dipenuhi:
+- Seluruh subdirektori di bawah `public/build/` wajib bermode `775` (`drwxrwxr-x`).
+- Seluruh berkas aset JavaScript dan CSS di bawah `public/build/assets/` wajib bermode `664` (`-rw-rw-r--`).
+- Berkas database SQLite (`database/database.sqlite`) serta direktorinya wajib memiliki izin baca-tulis penuh bagi pekerja PHP-FPM (`775` untuk direktori, `664` untuk berkas).
+
+---
+
+## 5. Konfigurasi Header Nginx untuk Peta OpenStreetMap (`/peta`)
 Server tile resmi **OpenStreetMap Contributors** (`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`) mewajibkan browser mengirimkan HTTP `Referer` header. Pastikan konfigurasi Nginx menggunakan kebijakan berikut (bukan `same-origin` atau `no-referrer`):
 
 ```nginx

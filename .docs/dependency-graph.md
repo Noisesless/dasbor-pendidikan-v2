@@ -16,12 +16,14 @@ flowchart LR
         PC["PetaController"]
         AC["AnalysisController"]
         AAC["AdvancedAnalysisController"]
+        CBC["ChatbotController"]
         AU["AuthController"]
     end
 
     subgraph Support_Services["Support & Services"]
         FLT["App\\Support\\Filters"]
         GEO["App\\Support\\KecamatanGeo"]
+        RAG["App\\Services\\EducationRagService"]
         AI["App\\Services\\AnalitikIndikator"]
         DP["App\\Services\\DindikporaParser"]
         KP["App\\Services\\KemenagParser"]
@@ -37,13 +39,15 @@ flowchart LR
         MP["Population"]
     end
 
-    W --> DC & DMC & IC & GC & PC & AC & AU
+    W --> DC & DMC & IC & GC & PC & AC & AAC & CBC & AU
     DC & DMC & IC & GC & PC --> FLT
     DC & IC & PC --> MS
     DC & DMC & IC & PC --> MSS
     DC & DMC & GC & PC --> MTS
     GC --> MT
     AC --> AI & DP & KP & DSP & WP
+    CBC --> RAG
+    RAG --> MS & MSS & MTS
     AI --> MP & MS & MSS & MTS
 ```
 

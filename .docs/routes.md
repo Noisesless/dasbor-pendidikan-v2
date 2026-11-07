@@ -25,4 +25,5 @@ Seluruh rute didefinisikan di [`routes/web.php`](../routes/web.php).
 | 19 | `GET` | `/analisis/sarana` | `sarana` | `auth` | `AdvancedAnalysisController@sarana` | `resources/views/dashboard/sarana.blade.php` |
 | 20 | `GET` | `/analisis/regrouping` | `regrouping` | `auth` | `AdvancedAnalysisController@regrouping` | `resources/views/dashboard/regrouping.blade.php` |
 | 21 | `POST` | `/chatbot/ask` | `chatbot.ask` | `auth`, `throttle:30,1` | `ChatbotController@ask` | *(JSON Response - Hybrid Online/Offline RAG)* |
+| 22 | `GET` | `/chatbot/ping` | `chatbot.ping` | `auth` | `ChatbotController@ping` | *(JSON Response - Health & DB Diagnostics)* |
 

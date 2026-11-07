@@ -129,3 +129,16 @@ erDiagram
 - `regional_education_stats`: Rekapitulasi sekolah/guru/murid negeri & swasta lintas tahun ajaran dari sumber `dindikpora` dan `kemenag` (`UNIQUE (kecamatan, jenjang, tahun_ajaran, sumber)`).
 - `regional_indicators`: Indikator makro tingkat kabupaten dari BPS seperti `HLS`, `RLS`, `IPM`, `APK`, dan `APM` (`UNIQUE (indikator, wilayah, tahun)`).
 
+---
+
+## 3. Dinamika Kueri Analitik & Ekstensibilitas Data RAG
+
+Untuk mendukung pembaruan data berkelanjutan di masa depan tanpa mengubah kode logika aplikasi:
+1. **Deteksi Semester Aktif Otomatis:**
+   - Mesin analitik dan RAG menentukan semester mutakhir secara dinamis melalui kueri agregasi `DB::table('student_stats')->max('semester')`.
+   - Jika semester baru diimpor (misalnya `20262` atau `20271`), sistem langsung menggunakan data terbaru tersebut sebagai konteks acuan dasar (*active baseline*).
+2. **Kueri Agregasi Bebas Hardcode:**
+   - Agregasi statistik sekolah per kecamatan, jenjang, status akreditasi (`schools.akreditasi`), dan komposisi kepegawaian guru (`teacher_stats`) dikalkulasi langsung melalui kueri SQL relasional dengan indeks komposit.
+   - Hasil kueri diformat menggunakan `number_format()` dinamis sehingga penambahan sekolah, rombel, maupun guru baru otomatis tercermin pada jawaban analitik Asisten Data.
+
+

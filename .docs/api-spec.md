@@ -52,5 +52,6 @@ Diterima oleh rute `/`, `/demografi`, `/infrastruktur`, `/guru`, dan `/peta` mel
 ### D. Chatbot Analitik Pendidikan (Hybrid RAG)
 | Method | URI | Route Name | Middleware | Controller & Action | Deskripsi Respons |
 |---|---|---|---|---|---|
-| `POST` | `/chatbot/ask` | `chatbot.ask` | `web`, `auth`, `throttle:30,1` | `ChatbotController@ask` | Menerima JSON `{ question, mode: "auto"\|"online"\|"offline", history }`, mengambil fakta dari `EducationRagService`, dan mengembalikan `{ answer, mode_used, sources, follow_ups }` (`200 OK`) |
+| `POST` | `/chatbot/ask` | `chatbot.ask` | `web`, `auth`, `throttle:30,1` | `ChatbotController@ask` | Menerima JSON `{ question, mode: "auto"\|"online"\|"offline", history }`, mengambil fakta dinamis dari `EducationRagService`, dan mengembalikan `{ answer, mode_used, sources, follow_ups }` (`200 OK`) |
+| `GET` | `/chatbot/ping` | `chatbot.ping` | `web`, `auth` | `ChatbotController@ping` | Menguji kesiapan server, koneksi database SQLite, dan ketersediaan Gemini API key untuk keperluan verifikasi diagnostik internal (`200 OK`) |
 

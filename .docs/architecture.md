@@ -93,4 +93,41 @@ dasbor-pendidikan-v2-main/
    - Setiap permintaan HTTP ke modul utama maupun analisis membaca query string `?semester=...&kecamatan=...&jenjang=...` dan mengembalikan state filter yang konsisten ke seluruh view.
 3. **Penyajian Spasial (`PetaController` & `KecamatanGeo`):**
    - Menggabungkan poligon `banjarnegara_kecamatan.geojson` dengan agregat sekolah/siswa/guru per kecamatan untuk mewarnai layer choropleth serta merender marker koordinat sekolah di atas tile **OpenStreetMap Contributors** (`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`).
+4. **Asisten Cerdas Hybrid RAG (`ChatbotController` & `EducationRagService`):**
+   - **Multi-Model API Cascade (Online RAG):** Memanggil model Gemini API dengan kaskade otomatis: `gemini-3.5-flash-lite` → `gemini-flash-lite-latest` → `gemini-3.1-flash-lite` → `gemma-4-26b-a4b-it`.
+   - **Kueri Dinamis Berkelanjutan (Offline RAG):** Menggunakan `getActiveSemester()` (`student_stats.max('semester')`) dan kueri agregasi SQL terindeks tanpa angka statis/hardcode sehingga otomatis adaptif terhadap penambahan data di masa depan.
+   - **Invisible Architecture:** Tanpa ekspos label teknis internal ke antarmuka pengguna demi pengalaman natural dan clean.
+
+---
+
+## 4. Diagram Alur Hybrid RAG (Online & Offline Fallback)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Pengguna (Browser)
+    participant UI as Chatbot UI (Alpine.js)
+    participant CC as ChatbotController
+    participant RAG as EducationRagService
+    participant DB as SQLite Database
+    participant API as Google Gemini API
+
+    User->>UI: Ketik pertanyaan analitik
+    UI->>CC: POST /chatbot/ask (question, mode="auto", history)
+    CC->>RAG: generateAnswer(question, mode, history)
+    RAG->>DB: getActiveSemester() + Ambil Fakta Database Relevan
+    DB-->>RAG: Data agregat sekolah, siswa, guru, rasio & indikator
+    alt Mode Online & Gemini API Key Tersedia
+        RAG->>API: Prompt + Context Data (Cascade: 3.5-flash-lite -> flash-lite-latest -> ...)
+        alt API Berhasil
+            API-->>RAG: Jawaban Natural Language
+        else API Limit / Error
+            RAG->>RAG: synthesizeOfflineAnswer() (Dinamis dari SQLite)
+        end
+    else Mode Offline / Tanpa API Key
+        RAG->>RAG: synthesizeOfflineAnswer() (Dinamis dari SQLite)
+    end
+    RAG-->>CC: Array [answer, mode_used, sources, follow_ups]
+    CC-->>UI: JSON 200 OK
+    UI->>User: Render jawaban analitik + Timestamp
+```
 
