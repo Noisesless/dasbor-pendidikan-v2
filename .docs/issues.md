@@ -8,6 +8,23 @@
 
 ## Riwayat Isu Terselesaikan (`RESOLVED`)
 
+### [ISSUE-002] Penyesuaian Chatbot RAG: CSRF Mismatch, Markdown Rendering, dan Pemisahan Follow-Up Sapaan
+- **Status:** `RESOLVED`
+- **Tanggal:** 2026-11-07
+- **Komponen Terdampak:**
+  - [`bootstrap/app.php`](../bootstrap/app.php)
+  - [`resources/views/partials/chatbot.blade.php`](../resources/views/partials/chatbot.blade.php)
+  - [`app/Services/EducationRagService.php`](../app/Services/EducationRagService.php)
+  - [`app/Http/Controllers/ChatbotController.php`](../app/Http/Controllers/ChatbotController.php)
+- **Akar Masalah:**
+  1. Permintaan POST ke `/chatbot/ask` terkadang memicu HTTP 419 jika session kedaluwarsa atau token CSRF statis tidak tersinkronisasi.
+  2. Teks jawaban Gemini mengandung tabel Markdown dan list yang belum memiliki parser aman dan fail-safe di Alpine.js.
+  3. Pada pertanyaan santai/sapaan ("halo"), panel debug tebal dan jawaban panjang mendorong bubble pengguna keluar layar, sementara tombol saran bawaan mengembalikan 3 tombol yang persis sama dengan pesan pembuka sehingga pengguna merasa percakapan di-reset.
+- **Solusi yang Diterapkan:**
+  1. Mengecualikan `chatbot/ask` dari verifikasi CSRF statis di `bootstrap/app.php` dengan tetap mewajibkan middleware `auth` dan *rate limiter*.
+  2. Menambahkan parser Markdown komprehensif (heading `###`, tabel pipe `|`, list `*` dan `1.`, horizontal rule) dengan penanganan try-catch di Alpine.js.
+  3. Menambahkan label pengirim (`Anda • [HH:mm]` vs `Asisten Data • [HH:mm]`), merampingkan bar debug produksi ke 1 baris kompak, menyempurnakan auto-scroll, dan mendiversifikasi pertanyaan follow-up untuk kueri sapaan/umum.
+
 ### [ISSUE-001] Tile Peta OpenStreetMap Mengembalikan Error `403 Access blocked` pada `/peta`
 - **Status:** `RESOLVED`
 - **Tanggal:** 2026-11-07
