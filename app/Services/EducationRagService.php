@@ -43,18 +43,6 @@ class EducationRagService
         $question = trim($question);
         $retrieval = $this->retrieveContext($question);
 
-        if ($retrieval['out_of_scope']) {
-            return [
-                'answer' => "Pertanyaan tersebut berada di luar lingkup data aplikasi **Dasbor Pendidikan Kabupaten Banjarnegara**.\n\nSaya hanya dapat menjawab pertanyaan seputar data satuan pendidikan, peserta didik, pendidik, sarana prasarana, peta sebaran wilayah, indikator makro (APK/APM/HLS/RLS/IPM), serta **Rekomendasi Kepala Dinas** (termasuk analisis mendalam mengenai pemisahan data guru **MI dan MTs**).",
-                'sources' => ['Batasan Lingkup Aplikasi'],
-                'follow_ups' => [
-                    'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?',
-                    'Bagaimana perbandingan rasio guru per kecamatan jika siswa MI dan MTs dipisahkan?',
-                    'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?',
-                ],
-            ];
-        }
-
         $apiKey = (string) config('services.gemini.api_key', '');
 
         // 1. Coba Online RAG dengan multi-model cascade jika API key tersedia
@@ -81,7 +69,6 @@ class EducationRagService
      * Kumpulkan konteks faktual (RAG Chunks) dari database sesuai entitas & topik pertanyaan.
      *
      * @return array{
-     *   out_of_scope: bool,
      *   topics: array<int, string>,
      *   matched_kecamatan: array<int, string>,
      *   matched_jenjang: array<int, string>,
@@ -95,26 +82,6 @@ class EducationRagService
     public function retrieveContext(string $question): array
     {
         $qLower = mb_strtolower($question);
-
-        $outOfScopeKeywords = [
-            'resep masakan', 'prediksi bola', 'skor pertandingan', 'harga saham', 'kripto',
-            'bitcoin', 'cuaca hari ini', 'jadwal bioskop', 'zodiak', 'ramalan bintang',
-        ];
-        foreach ($outOfScopeKeywords as $kw) {
-            if (str_contains($qLower, $kw)) {
-                return [
-                    'out_of_scope' => true,
-                    'topics' => [],
-                    'matched_kecamatan' => [],
-                    'matched_jenjang' => [],
-                    'matched_schools' => [],
-                    'core' => [],
-                    'context_text' => '',
-                    'sources' => [],
-                    'follow_ups' => [],
-                ];
-            }
-        }
 
         $core = $this->buildCoreFacts();
         $topics = $this->detectTopics($qLower);
@@ -208,27 +175,47 @@ class EducationRagService
      */
     private function callGeminiCascade(string $question, string $contextText, array $history, string $apiKey): ?string
     {
-        $systemPrompt = "Anda adalah Asisten Analitik Data Pendidikan Kabupaten Banjarnegara pada aplikasi Dasbor Pendidikan (pendidikan.sistemdata.id).\n"
-            . "PANDUAN MENJAWAB:\n"
-            . "1. Jawab HANYA berdasarkan [FAKTA] yang diberikan di bawah ini dalam Bahasa Indonesia yang lugas, profesional, mengalir alami, dan berbasis data angka pasti.\n"
-            . "2. Jika pengguna menanyakan tentang halaman Rekomendasi, rasio guru per kecamatan, data madrasah, MI, atau MTs:\n"
+        $systemPrompt = "Anda adalah Asisten Analitik Data Pendidikan Kabupaten Banjarnegara pada aplikasi Dasbor Pendidikan (pendidikan.sistemdata.id).\n\n"
+            . "PANDUAN UTAMA BERKOMUNIKASI:\n"
+            . "1. KONTEKS WILAYAH MUTLAK: Seluruh analisis, statistik, rasio guru, murid, rombel, jenjang, dan rekomendasi Anda SELALU dan HANYA merujuk pada Kabupaten Banjarnegara, Jawa Tengah (mencakup 20 kecamatan). DILARANG KERAS bertanya balik 'wilayah mana yang Anda maksud' atau meminta klarifikasi daerah! Jika pengguna bertanya rasio guru, MI, MTs, rombel padat, dll., langsung jawab dengan data Kabupaten Banjarnegara.\n"
+            . "2. FLEKSIBEL & RAMAH MENJAWAB PERTANYAAN UMUM / RANDOM: Jika pengguna menyapa, menanyakan topik umum, konsep belajar, pengetahuan umum, budaya daerah (Dawet Ayu Banjarnegara, Dataran Tinggi Dieng), atau pertanyaan santai lainnya, jawablah secara ramah, cerdas, informatif, dan menyenangkan layaknya asisten AI pintar, lalu hubungkan secara elegan dengan konteks pendidikan daerah jika relevan. JANGAN PERNAH menolak pertanyaan umum dengan kalimat kaku seperti 'di luar data' atau 'saya hanya bisa data pendidikan'.\n"
+            . "3. ANALISIS DATA SPESIFIK: Jika pengguna menanyakan tentang halaman Rekomendasi, rasio guru per kecamatan, data madrasah, MI, atau MTs:\n"
             . "   - Uraikan secara transparan bahwa analisis gabungan dipengaruhi oleh belum tersedianya rekaman guru per-NPSN pada 210 MI (23.335 siswa) dan 41 MTs (10.099 siswa) di tabel Dapodik (teacher_stats), serta duplikasi berkas CSV MI dengan MTs pada 7 dari 9 tahun ajaran di Satu Data Kemenag.\n"
             . "   - Sajikan perbandingan konkret antara Rasio Gabungan (19,5:1) vs Rasio Riil Sekolah Umum Non-Madrasah (15,8:1) dan sebutkan kecamatan yang mengalami distorsi rasio terbesar (seperti Pagedongan, Rakit, Banjarnegara, Bawang, Wanayasa, Mandiraja).\n"
-            . "3. Jangan menyebutkan istilah teknis backend seperti 'mode online', 'mode offline', 'prompt', 'RAG', 'database query', atau nama model AI. Bersikaplah layaknya asisten eksekutif cerdas yang menguasai data daerah.\n\n"
-            . "=== BASIS DATA FAKTUAL RESMI APLIKASI ===\n"
+            . "4. ETOS PROFESIONAL: Jangan menyebutkan istilah teknis backend seperti 'mode online', 'mode offline', 'prompt', 'RAG', 'database query', atau nama model AI. Bersikaplah layaknya asisten eksekutif cerdas yang menguasai data daerah.\n\n"
+            . "=== BASIS DATA FAKTUAL RESMI APLIKASI (KABUPATEN BANJARNEGARA) ===\n"
             . $contextText;
 
-        $contents = [];
+        // Susun riwayat percakapan yang valid (wajib diawali oleh 'user' dan bergantian)
+        $cleanHistory = [];
+        $lastRole = null;
         foreach (array_slice($history, -4) as $msg) {
             $role = ($msg['role'] ?? '') === 'model' ? 'model' : 'user';
             $text = trim((string) ($msg['text'] ?? ''));
-            if ($text !== '') {
-                $contents[] = [
-                    'role' => $role,
-                    'parts' => [['text' => mb_substr($text, 0, 1000)]],
-                ];
+            if ($text === '') {
+                continue;
             }
+            if ($cleanHistory === [] && $role === 'model') {
+                // Gemini API mewajibkan turn pertama diawali oleh 'user'
+                continue;
+            }
+            if ($role === $lastRole) {
+                // Hindari turn ganda berturut-turut dari role yang sama
+                continue;
+            }
+            $cleanHistory[] = [
+                'role' => $role,
+                'parts' => [['text' => mb_substr($text, 0, 1000)]],
+            ];
+            $lastRole = $role;
         }
+
+        if ($cleanHistory !== [] && $lastRole === 'user') {
+            // Jika elemen terakhir adalah user, buang agar question saat ini menjadi penutup turn user
+            array_pop($cleanHistory);
+        }
+
+        $contents = $cleanHistory;
         $contents[] = [
             'role' => 'user',
             'parts' => [['text' => $question]],
@@ -241,12 +228,11 @@ class EducationRagService
         foreach ($modelList as $model) {
             $attempt++;
             if ($attempt > 2) {
-                // Batasi maksimal 2 kandidat model online agar tidak menahan antrean pengguna
                 break;
             }
 
             try {
-                $timeout = $attempt === 1 ? 4 : 3;
+                $timeout = $attempt === 1 ? 7 : 5;
                 $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
                 $response = Http::timeout($timeout)
                     ->withHeaders(['Content-Type' => 'application/json'])
@@ -256,7 +242,7 @@ class EducationRagService
                         ],
                         'contents' => $contents,
                         'generationConfig' => [
-                            'temperature' => 0.2,
+                            'temperature' => 0.25,
                             'maxOutputTokens' => 850,
                         ],
                     ]);
@@ -268,7 +254,6 @@ class EducationRagService
                     }
                 }
             } catch (\Throwable $e) {
-                // Lanjut ke model kandidat berikutnya jika ada timeout atau error
                 continue;
             }
         }
@@ -290,7 +275,24 @@ class EducationRagService
         $kecs = $retrieval['matched_kecamatan'];
         $schools = $retrieval['matched_schools'];
 
-        // Skenario 1: Pencarian sekolah atau NPSN tertentu
+        // Skenario 1: Sapaan atau perkenalan
+        $greetings = ['halo', 'hai', 'selamat pagi', 'selamat siang', 'selamat sore', 'selamat malam', 'assalamu', 'siapa kamu', 'bisa bantu apa'];
+        foreach ($greetings as $greet) {
+            if (str_contains($qLower, $greet)) {
+                return "Halo! Saya **Asisten Data Banjarnegara** pada aplikasi Dasbor Pendidikan Kabupaten Banjarnegara.\n\n"
+                    . "Saya siap membantu Anda menelusuri data 2.054 sekolah, peserta didik, tenaga pendidik di 20 kecamatan, serta analisis mendalam pada halaman Rekomendasi Kepala Dinas (termasuk simulasi pemisahan data guru MI dan MTs).\n\n"
+                    . "Ada topik data, jenjang, atau wilayah kecamatan yang ingin Anda telusuri?";
+            }
+        }
+
+        // Skenario 1B: Kuliner, wisata, atau budaya Banjarnegara
+        if (str_contains($qLower, 'dawet') || str_contains($qLower, 'makanan') || str_contains($qLower, 'kuliner') || str_contains($qLower, 'wisata') || str_contains($qLower, 'dieng')) {
+            return "Kabupaten Banjarnegara sangat terkenal dengan keindahan **Dataran Tinggi Dieng** serta kuliner legendaris **Dawet Ayu Banjarnegara** yang manis dan menyegarkan!\n\n"
+                . "Sejalan dengan perkembangan daerah, sektor pendidikan di Banjarnegara juga menaungi **2.054 satuan pendidikan** di 20 kecamatan dengan total **" . number_format($c['total_siswa'], 0, ',', '.') . " peserta didik**.\n\n"
+                . "Ada data satuan pendidikan atau wilayah kecamatan tertentu yang ingin Anda telusuri lebih mendalam?";
+        }
+
+        // Skenario 1C: Pencarian sekolah atau NPSN tertentu
         if ($schools !== []) {
             $s = $schools[0];
 
