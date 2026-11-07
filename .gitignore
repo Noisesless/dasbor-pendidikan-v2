@@ -28,8 +28,8 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
-app-context.md
-handover.md
-issues.md
-prd.md
-todo.md
+/app-context.md
+/handover.md
+/issues.md
+/prd.md
+/todo.md
