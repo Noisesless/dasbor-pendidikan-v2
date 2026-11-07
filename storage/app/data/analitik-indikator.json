@@ -1,0 +1,2147 @@
+{
+    "_meta": {
+        "sumber": "Dasbor Analitik Pendidikan - DB analitik_pendidikan",
+        "tahun_terakhir": 2026,
+        "tahun_tersedia": [
+            2026
+        ],
+        "rumus": {
+            "apk": "Partisipasi Kasar = siswa enrolling / penduduk usia resmi x 100",
+            "apm": "Partisipasi Murni = siswa sesuai usia / penduduk usia resmi x 100",
+            "aps": "Partisipasi Sekolah = siswa sesuai usia / total siswa enrolling x 100"
+        },
+        "generated_at": "2026-10-31T16:20:51+00:00"
+    },
+    "ringkasan": {
+        "tahun": 2026,
+        "kecamatan": 20,
+        "sekolah": 2047,
+        "siswa": 178379,
+        "guru": 10217,
+        "guru_sertifikasi": 6783,
+        "persen_sertifikasi": 66.4,
+        "penduduk": 1228681,
+        "akreditasi_a": 397,
+        "persen_akreditasi_a": 19.4
+    },
+    "ringkasan_per_tahun": {
+        "2026": {
+            "tahun": 2026,
+            "kecamatan": 20,
+            "sekolah": 2047,
+            "siswa": 178379,
+            "guru": 10217,
+            "guru_sertifikasi": 6783,
+            "persen_sertifikasi": 66.4,
+            "penduduk": 1228681,
+            "akreditasi_a": 397,
+            "persen_akreditasi_a": 19.4
+        }
+    },
+    "rekap_kecamatan": [
+        {
+            "kecamatan": "BANJARMANGU",
+            "sekolah": 97,
+            "total_siswa": 6410,
+            "siswa_usia_sesuai": 5132,
+            "penduduk_usia": 29428,
+            "apk": 21.2,
+            "apm": 16,
+            "aps": 69,
+            "guru": 382,
+            "guru_sertifikasi": 257,
+            "persen_sertifikasi": 67.3
+        },
+        {
+            "kecamatan": "BANJARNEGARA",
+            "sekolah": 146,
+            "total_siswa": 21981,
+            "siswa_usia_sesuai": 17645,
+            "penduduk_usia": 34728,
+            "apk": 64.2,
+            "apm": 49.5,
+            "aps": 71.1,
+            "guru": 1223,
+            "guru_sertifikasi": 701,
+            "persen_sertifikasi": 57.3
+        },
+        {
+            "kecamatan": "BATUR",
+            "sekolah": 69,
+            "total_siswa": 6077,
+            "siswa_usia_sesuai": 4899,
+            "penduduk_usia": 29062,
+            "apk": 19.7,
+            "apm": 14.6,
+            "aps": 70.3,
+            "guru": 257,
+            "guru_sertifikasi": 161,
+            "persen_sertifikasi": 62.6
+        },
+        {
+            "kecamatan": "BAWANG",
+            "sekolah": 137,
+            "total_siswa": 14441,
+            "siswa_usia_sesuai": 11929,
+            "penduduk_usia": 35212,
+            "apk": 42.1,
+            "apm": 33.5,
+            "aps": 72,
+            "guru": 835,
+            "guru_sertifikasi": 602,
+            "persen_sertifikasi": 72.1
+        },
+        {
+            "kecamatan": "KALIBENING",
+            "sekolah": 89,
+            "total_siswa": 7997,
+            "siswa_usia_sesuai": 6568,
+            "penduduk_usia": 35564,
+            "apk": 20.9,
+            "apm": 16.5,
+            "aps": 71.8,
+            "guru": 443,
+            "guru_sertifikasi": 298,
+            "persen_sertifikasi": 67.3
+        },
+        {
+            "kecamatan": "KARANGKOBAR",
+            "sekolah": 73,
+            "total_siswa": 7476,
+            "siswa_usia_sesuai": 6227,
+            "penduduk_usia": 34280,
+            "apk": 21.2,
+            "apm": 17.1,
+            "aps": 69.1,
+            "guru": 456,
+            "guru_sertifikasi": 311,
+            "persen_sertifikasi": 68.2
+        },
+        {
+            "kecamatan": "MADUKARA",
+            "sekolah": 96,
+            "total_siswa": 7033,
+            "siswa_usia_sesuai": 5799,
+            "penduduk_usia": 29582,
+            "apk": 22.7,
+            "apm": 17.7,
+            "aps": 68.7,
+            "guru": 477,
+            "guru_sertifikasi": 286,
+            "persen_sertifikasi": 60
+        },
+        {
+            "kecamatan": "MANDIRAJA",
+            "sekolah": 133,
+            "total_siswa": 11752,
+            "siswa_usia_sesuai": 9845,
+            "penduduk_usia": 29252,
+            "apk": 37.5,
+            "apm": 30.3,
+            "aps": 69.2,
+            "guru": 669,
+            "guru_sertifikasi": 450,
+            "persen_sertifikasi": 67.3
+        },
+        {
+            "kecamatan": "PAGEDONGAN",
+            "sekolah": 88,
+            "total_siswa": 5121,
+            "siswa_usia_sesuai": 4295,
+            "penduduk_usia": 28712,
+            "apk": 16.5,
+            "apm": 13.2,
+            "aps": 69.4,
+            "guru": 272,
+            "guru_sertifikasi": 175,
+            "persen_sertifikasi": 64.3
+        },
+        {
+            "kecamatan": "PAGENTAN",
+            "sekolah": 67,
+            "total_siswa": 5321,
+            "siswa_usia_sesuai": 4482,
+            "penduduk_usia": 25681,
+            "apk": 20,
+            "apm": 16.2,
+            "aps": 72.3,
+            "guru": 381,
+            "guru_sertifikasi": 260,
+            "persen_sertifikasi": 68.2
+        },
+        {
+            "kecamatan": "PANDANARUM",
+            "sekolah": 44,
+            "total_siswa": 3384,
+            "siswa_usia_sesuai": 2895,
+            "penduduk_usia": 22634,
+            "apk": 14.8,
+            "apm": 12.4,
+            "aps": 81.8,
+            "guru": 225,
+            "guru_sertifikasi": 174,
+            "persen_sertifikasi": 77.3
+        },
+        {
+            "kecamatan": "PEJAWARAN",
+            "sekolah": 85,
+            "total_siswa": 6925,
+            "siswa_usia_sesuai": 5467,
+            "penduduk_usia": 28818,
+            "apk": 22.8,
+            "apm": 17,
+            "aps": 67.4,
+            "guru": 387,
+            "guru_sertifikasi": 269,
+            "persen_sertifikasi": 69.5
+        },
+        {
+            "kecamatan": "PUNGGELAN",
+            "sekolah": 171,
+            "total_siswa": 13011,
+            "siswa_usia_sesuai": 10620,
+            "penduduk_usia": 29344,
+            "apk": 42.9,
+            "apm": 33,
+            "aps": 70.3,
+            "guru": 737,
+            "guru_sertifikasi": 518,
+            "persen_sertifikasi": 70.3
+        },
+        {
+            "kecamatan": "PURWANEGARA",
+            "sekolah": 136,
+            "total_siswa": 11831,
+            "siswa_usia_sesuai": 9673,
+            "penduduk_usia": 32442,
+            "apk": 33.5,
+            "apm": 26.2,
+            "aps": 68.7,
+            "guru": 630,
+            "guru_sertifikasi": 444,
+            "persen_sertifikasi": 70.5
+        },
+        {
+            "kecamatan": "PURWAREJA KLAMPOK",
+            "sekolah": 102,
+            "total_siswa": 12946,
+            "siswa_usia_sesuai": 10256,
+            "penduduk_usia": 35880,
+            "apk": 36.3,
+            "apm": 27.9,
+            "aps": 71.3,
+            "guru": 640,
+            "guru_sertifikasi": 389,
+            "persen_sertifikasi": 60.8
+        },
+        {
+            "kecamatan": "RAKIT",
+            "sekolah": 146,
+            "total_siswa": 8349,
+            "siswa_usia_sesuai": 6634,
+            "penduduk_usia": 32708,
+            "apk": 25.1,
+            "apm": 18.5,
+            "aps": 68.2,
+            "guru": 467,
+            "guru_sertifikasi": 323,
+            "persen_sertifikasi": 69.2
+        },
+        {
+            "kecamatan": "SIGALUH",
+            "sekolah": 76,
+            "total_siswa": 3950,
+            "siswa_usia_sesuai": 3340,
+            "penduduk_usia": 28762,
+            "apk": 13.3,
+            "apm": 10.7,
+            "aps": 74.3,
+            "guru": 283,
+            "guru_sertifikasi": 186,
+            "persen_sertifikasi": 65.7
+        },
+        {
+            "kecamatan": "SUSUKAN",
+            "sekolah": 109,
+            "total_siswa": 9326,
+            "siswa_usia_sesuai": 7824,
+            "penduduk_usia": 28604,
+            "apk": 30.2,
+            "apm": 24.4,
+            "aps": 68.9,
+            "guru": 548,
+            "guru_sertifikasi": 333,
+            "persen_sertifikasi": 60.8
+        },
+        {
+            "kecamatan": "WANADADI",
+            "sekolah": 86,
+            "total_siswa": 7125,
+            "siswa_usia_sesuai": 6139,
+            "penduduk_usia": 35132,
+            "apk": 19.9,
+            "apm": 16.5,
+            "aps": 71.7,
+            "guru": 476,
+            "guru_sertifikasi": 332,
+            "persen_sertifikasi": 69.7
+        },
+        {
+            "kecamatan": "WANAYASA",
+            "sekolah": 97,
+            "total_siswa": 7923,
+            "siswa_usia_sesuai": 6326,
+            "penduduk_usia": 31171,
+            "apk": 24.8,
+            "apm": 18.9,
+            "aps": 68.7,
+            "guru": 429,
+            "guru_sertifikasi": 314,
+            "persen_sertifikasi": 73.2
+        }
+    ],
+    "indikator_per_kecamatan": {
+        "BANJARMANGU": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 492,
+                "siswa_usia_sesuai": 288,
+                "penduduk_usia": 1886,
+                "apk": 26.1,
+                "apm": 15.3,
+                "aps": 58.5
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 597,
+                "siswa_usia_sesuai": 529,
+                "penduduk_usia": 1886,
+                "apk": 31.7,
+                "apm": 28,
+                "aps": 88.6
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 2492,
+                "siswa_usia_sesuai": 2330,
+                "penduduk_usia": 6532,
+                "apk": 38.2,
+                "apm": 35.7,
+                "aps": 93.5
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 975,
+                "siswa_usia_sesuai": 783,
+                "penduduk_usia": 6532,
+                "apk": 14.9,
+                "apm": 12,
+                "aps": 80.3
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1034,
+                "siswa_usia_sesuai": 889,
+                "penduduk_usia": 3337,
+                "apk": 31,
+                "apm": 26.6,
+                "aps": 86
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 54,
+                "siswa_usia_sesuai": 37,
+                "penduduk_usia": 3337,
+                "apk": 1.6,
+                "apm": 1.1,
+                "aps": 68.5
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 362,
+                "siswa_usia_sesuai": 276,
+                "penduduk_usia": 2959,
+                "apk": 12.2,
+                "apm": 9.3,
+                "aps": 76.2
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 404,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 2959,
+                "apk": 13.7,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "BANJARNEGARA": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 1187,
+                "siswa_usia_sesuai": 601,
+                "penduduk_usia": 1926,
+                "apk": 61.6,
+                "apm": 31.2,
+                "aps": 50.6
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 895,
+                "siswa_usia_sesuai": 802,
+                "penduduk_usia": 1926,
+                "apk": 46.5,
+                "apm": 41.6,
+                "aps": 89.6
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 5707,
+                "siswa_usia_sesuai": 5490,
+                "penduduk_usia": 6157,
+                "apk": 92.7,
+                "apm": 89.2,
+                "aps": 96.2
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 981,
+                "siswa_usia_sesuai": 808,
+                "penduduk_usia": 6157,
+                "apk": 15.9,
+                "apm": 13.1,
+                "aps": 82.4
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 3174,
+                "siswa_usia_sesuai": 2825,
+                "penduduk_usia": 3279,
+                "apk": 96.8,
+                "apm": 86.2,
+                "aps": 89
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 2145,
+                "siswa_usia_sesuai": 1456,
+                "penduduk_usia": 3279,
+                "apk": 65.4,
+                "apm": 44.4,
+                "aps": 67.9
+            },
+            "SMA": {
+                "jenjang": "SMA",
+                "total_siswa": 1355,
+                "siswa_usia_sesuai": 1118,
+                "penduduk_usia": 3001,
+                "apk": 45.2,
+                "apm": 37.3,
+                "aps": 82.5
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 4447,
+                "siswa_usia_sesuai": 3591,
+                "penduduk_usia": 3001,
+                "apk": 148.2,
+                "apm": 119.7,
+                "aps": 80.8
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 1315,
+                "siswa_usia_sesuai": 954,
+                "penduduk_usia": 3001,
+                "apk": 43.8,
+                "apm": 31.8,
+                "aps": 72.5
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 775,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3001,
+                "apk": 25.8,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "BATUR": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 840,
+                "siswa_usia_sesuai": 475,
+                "penduduk_usia": 1888,
+                "apk": 44.5,
+                "apm": 25.2,
+                "aps": 56.5
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 225,
+                "siswa_usia_sesuai": 202,
+                "penduduk_usia": 1888,
+                "apk": 11.9,
+                "apm": 10.7,
+                "aps": 89.8
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 3237,
+                "siswa_usia_sesuai": 3031,
+                "penduduk_usia": 6260,
+                "apk": 51.7,
+                "apm": 48.4,
+                "aps": 93.6
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 387,
+                "siswa_usia_sesuai": 323,
+                "penduduk_usia": 6260,
+                "apk": 6.2,
+                "apm": 5.2,
+                "aps": 83.5
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 529,
+                "siswa_usia_sesuai": 453,
+                "penduduk_usia": 3199,
+                "apk": 16.5,
+                "apm": 14.2,
+                "aps": 85.6
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 194,
+                "siswa_usia_sesuai": 139,
+                "penduduk_usia": 3199,
+                "apk": 6.1,
+                "apm": 4.3,
+                "aps": 71.6
+            },
+            "SMA": {
+                "jenjang": "SMA",
+                "total_siswa": 338,
+                "siswa_usia_sesuai": 276,
+                "penduduk_usia": 3184,
+                "apk": 10.6,
+                "apm": 8.7,
+                "aps": 81.7
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 327,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3184,
+                "apk": 10.3,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "BAWANG": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 1020,
+                "siswa_usia_sesuai": 544,
+                "penduduk_usia": 1954,
+                "apk": 52.2,
+                "apm": 27.8,
+                "aps": 53.3
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 559,
+                "siswa_usia_sesuai": 495,
+                "penduduk_usia": 1954,
+                "apk": 28.6,
+                "apm": 25.3,
+                "aps": 88.6
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 3741,
+                "siswa_usia_sesuai": 3555,
+                "penduduk_usia": 6442,
+                "apk": 58.1,
+                "apm": 55.2,
+                "aps": 95
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 992,
+                "siswa_usia_sesuai": 799,
+                "penduduk_usia": 6442,
+                "apk": 15.4,
+                "apm": 12.4,
+                "aps": 80.5
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1970,
+                "siswa_usia_sesuai": 1734,
+                "penduduk_usia": 3290,
+                "apk": 59.9,
+                "apm": 52.7,
+                "aps": 88
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 464,
+                "siswa_usia_sesuai": 348,
+                "penduduk_usia": 3290,
+                "apk": 14.1,
+                "apm": 10.6,
+                "aps": 75
+            },
+            "SMA": {
+                "jenjang": "SMA",
+                "total_siswa": 1010,
+                "siswa_usia_sesuai": 863,
+                "penduduk_usia": 2960,
+                "apk": 34.1,
+                "apm": 29.2,
+                "aps": 85.4
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 3159,
+                "siswa_usia_sesuai": 2628,
+                "penduduk_usia": 2960,
+                "apk": 106.7,
+                "apm": 88.8,
+                "aps": 83.2
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 1353,
+                "siswa_usia_sesuai": 963,
+                "penduduk_usia": 2960,
+                "apk": 45.7,
+                "apm": 32.5,
+                "aps": 71.2
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 173,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 2960,
+                "apk": 5.8,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "KALIBENING": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 797,
+                "siswa_usia_sesuai": 589,
+                "penduduk_usia": 1995,
+                "apk": 39.9,
+                "apm": 29.5,
+                "aps": 73.9
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 306,
+                "siswa_usia_sesuai": 282,
+                "penduduk_usia": 1995,
+                "apk": 15.3,
+                "apm": 14.1,
+                "aps": 92.2
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 3670,
+                "siswa_usia_sesuai": 3422,
+                "penduduk_usia": 6382,
+                "apk": 57.5,
+                "apm": 53.6,
+                "aps": 93.2
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 283,
+                "siswa_usia_sesuai": 213,
+                "penduduk_usia": 6382,
+                "apk": 4.4,
+                "apm": 3.3,
+                "aps": 75.3
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1580,
+                "siswa_usia_sesuai": 1360,
+                "penduduk_usia": 3253,
+                "apk": 48.6,
+                "apm": 41.8,
+                "aps": 86.1
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 271,
+                "siswa_usia_sesuai": 170,
+                "penduduk_usia": 3253,
+                "apk": 8.3,
+                "apm": 5.2,
+                "aps": 62.7
+            },
+            "SMA": {
+                "jenjang": "SMA",
+                "total_siswa": 461,
+                "siswa_usia_sesuai": 397,
+                "penduduk_usia": 3076,
+                "apk": 15,
+                "apm": 12.9,
+                "aps": 86.1
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 106,
+                "siswa_usia_sesuai": 83,
+                "penduduk_usia": 3076,
+                "apk": 3.4,
+                "apm": 2.7,
+                "aps": 78.3
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 74,
+                "siswa_usia_sesuai": 52,
+                "penduduk_usia": 3076,
+                "apk": 2.4,
+                "apm": 1.7,
+                "aps": 70.3
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 449,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3076,
+                "apk": 14.6,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "KARANGKOBAR": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 434,
+                "siswa_usia_sesuai": 303,
+                "penduduk_usia": 1842,
+                "apk": 23.6,
+                "apm": 16.4,
+                "aps": 69.8
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 546,
+                "siswa_usia_sesuai": 439,
+                "penduduk_usia": 1842,
+                "apk": 29.6,
+                "apm": 23.8,
+                "aps": 80.4
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 2930,
+                "siswa_usia_sesuai": 2751,
+                "penduduk_usia": 6153,
+                "apk": 47.6,
+                "apm": 44.7,
+                "aps": 93.9
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 224,
+                "siswa_usia_sesuai": 160,
+                "penduduk_usia": 6153,
+                "apk": 3.6,
+                "apm": 2.6,
+                "aps": 71.4
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1322,
+                "siswa_usia_sesuai": 1090,
+                "penduduk_usia": 3337,
+                "apk": 39.6,
+                "apm": 32.7,
+                "aps": 82.5
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 247,
+                "siswa_usia_sesuai": 160,
+                "penduduk_usia": 3337,
+                "apk": 7.4,
+                "apm": 4.8,
+                "aps": 64.8
+            },
+            "SMA": {
+                "jenjang": "SMA",
+                "total_siswa": 952,
+                "siswa_usia_sesuai": 789,
+                "penduduk_usia": 2904,
+                "apk": 32.8,
+                "apm": 27.2,
+                "aps": 82.9
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 611,
+                "siswa_usia_sesuai": 493,
+                "penduduk_usia": 2904,
+                "apk": 21,
+                "apm": 17,
+                "aps": 80.7
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 65,
+                "siswa_usia_sesuai": 42,
+                "penduduk_usia": 2904,
+                "apk": 2.2,
+                "apm": 1.4,
+                "aps": 64.6
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 145,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 2904,
+                "apk": 5,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "MADUKARA": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 665,
+                "siswa_usia_sesuai": 373,
+                "penduduk_usia": 1918,
+                "apk": 34.7,
+                "apm": 19.4,
+                "aps": 56.1
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 543,
+                "siswa_usia_sesuai": 486,
+                "penduduk_usia": 1918,
+                "apk": 28.3,
+                "apm": 25.3,
+                "aps": 89.5
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 3334,
+                "siswa_usia_sesuai": 3041,
+                "penduduk_usia": 6511,
+                "apk": 51.2,
+                "apm": 46.7,
+                "aps": 91.2
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 661,
+                "siswa_usia_sesuai": 564,
+                "penduduk_usia": 6511,
+                "apk": 10.2,
+                "apm": 8.7,
+                "aps": 85.3
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1343,
+                "siswa_usia_sesuai": 1174,
+                "penduduk_usia": 3215,
+                "apk": 41.8,
+                "apm": 36.5,
+                "aps": 87.4
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 197,
+                "siswa_usia_sesuai": 124,
+                "penduduk_usia": 3215,
+                "apk": 6.1,
+                "apm": 3.9,
+                "aps": 62.9
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 48,
+                "siswa_usia_sesuai": 37,
+                "penduduk_usia": 3147,
+                "apk": 1.5,
+                "apm": 1.2,
+                "aps": 77.1
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 242,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3147,
+                "apk": 7.7,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "MANDIRAJA": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 913,
+                "siswa_usia_sesuai": 618,
+                "penduduk_usia": 1955,
+                "apk": 46.7,
+                "apm": 31.6,
+                "aps": 67.7
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 768,
+                "siswa_usia_sesuai": 677,
+                "penduduk_usia": 1955,
+                "apk": 39.3,
+                "apm": 34.6,
+                "aps": 88.2
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 4890,
+                "siswa_usia_sesuai": 4495,
+                "penduduk_usia": 6311,
+                "apk": 77.5,
+                "apm": 71.2,
+                "aps": 91.9
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 1571,
+                "siswa_usia_sesuai": 1322,
+                "penduduk_usia": 6311,
+                "apk": 24.9,
+                "apm": 20.9,
+                "aps": 84.2
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 2082,
+                "siswa_usia_sesuai": 1774,
+                "penduduk_usia": 3340,
+                "apk": 62.3,
+                "apm": 53.1,
+                "aps": 85.2
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 470,
+                "siswa_usia_sesuai": 287,
+                "penduduk_usia": 3340,
+                "apk": 14.1,
+                "apm": 8.6,
+                "aps": 61.1
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 896,
+                "siswa_usia_sesuai": 672,
+                "penduduk_usia": 3020,
+                "apk": 29.7,
+                "apm": 22.3,
+                "aps": 75
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 162,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3020,
+                "apk": 5.4,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "PAGEDONGAN": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 534,
+                "siswa_usia_sesuai": 338,
+                "penduduk_usia": 1838,
+                "apk": 29.1,
+                "apm": 18.4,
+                "aps": 63.3
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 287,
+                "siswa_usia_sesuai": 264,
+                "penduduk_usia": 1838,
+                "apk": 15.6,
+                "apm": 14.4,
+                "aps": 92
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 2156,
+                "siswa_usia_sesuai": 2021,
+                "penduduk_usia": 6258,
+                "apk": 34.5,
+                "apm": 32.3,
+                "aps": 93.7
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 958,
+                "siswa_usia_sesuai": 770,
+                "penduduk_usia": 6258,
+                "apk": 15.3,
+                "apm": 12.3,
+                "aps": 80.4
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 679,
+                "siswa_usia_sesuai": 579,
+                "penduduk_usia": 3211,
+                "apk": 21.1,
+                "apm": 18,
+                "aps": 85.3
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 382,
+                "siswa_usia_sesuai": 241,
+                "penduduk_usia": 3211,
+                "apk": 11.9,
+                "apm": 7.5,
+                "aps": 63.1
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 106,
+                "siswa_usia_sesuai": 82,
+                "penduduk_usia": 3049,
+                "apk": 3.5,
+                "apm": 2.7,
+                "aps": 77.4
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 19,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3049,
+                "apk": 0.6,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "PAGENTAN": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 601,
+                "siswa_usia_sesuai": 474,
+                "penduduk_usia": 1878,
+                "apk": 32,
+                "apm": 25.2,
+                "aps": 78.9
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 214,
+                "siswa_usia_sesuai": 184,
+                "penduduk_usia": 1878,
+                "apk": 11.4,
+                "apm": 9.8,
+                "aps": 86
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 2815,
+                "siswa_usia_sesuai": 2597,
+                "penduduk_usia": 6290,
+                "apk": 44.8,
+                "apm": 41.3,
+                "aps": 92.3
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 127,
+                "siswa_usia_sesuai": 105,
+                "penduduk_usia": 6290,
+                "apk": 2,
+                "apm": 1.7,
+                "aps": 82.7
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1046,
+                "siswa_usia_sesuai": 907,
+                "penduduk_usia": 3195,
+                "apk": 32.7,
+                "apm": 28.4,
+                "aps": 86.7
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 270,
+                "siswa_usia_sesuai": 215,
+                "penduduk_usia": 3075,
+                "apk": 8.8,
+                "apm": 7,
+                "aps": 79.6
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 248,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3075,
+                "apk": 8.1,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "PANDANARUM": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 219,
+                "siswa_usia_sesuai": 184,
+                "penduduk_usia": 1936,
+                "apk": 11.3,
+                "apm": 9.5,
+                "aps": 84
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 263,
+                "siswa_usia_sesuai": 208,
+                "penduduk_usia": 1936,
+                "apk": 13.6,
+                "apm": 10.7,
+                "aps": 79.1
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 1649,
+                "siswa_usia_sesuai": 1509,
+                "penduduk_usia": 6239,
+                "apk": 26.4,
+                "apm": 24.2,
+                "aps": 91.5
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 137,
+                "siswa_usia_sesuai": 105,
+                "penduduk_usia": 6239,
+                "apk": 2.2,
+                "apm": 1.7,
+                "aps": 76.6
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 650,
+                "siswa_usia_sesuai": 515,
+                "penduduk_usia": 3174,
+                "apk": 20.5,
+                "apm": 16.2,
+                "aps": 79.2
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 466,
+                "siswa_usia_sesuai": 374,
+                "penduduk_usia": 3110,
+                "apk": 15,
+                "apm": 12,
+                "aps": 80.3
+            }
+        },
+        "PEJAWARAN": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 745,
+                "siswa_usia_sesuai": 481,
+                "penduduk_usia": 1981,
+                "apk": 37.6,
+                "apm": 24.3,
+                "aps": 64.6
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 320,
+                "siswa_usia_sesuai": 267,
+                "penduduk_usia": 1981,
+                "apk": 16.2,
+                "apm": 13.5,
+                "aps": 83.4
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 3035,
+                "siswa_usia_sesuai": 2808,
+                "penduduk_usia": 6051,
+                "apk": 50.2,
+                "apm": 46.4,
+                "aps": 92.5
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 677,
+                "siswa_usia_sesuai": 551,
+                "penduduk_usia": 6051,
+                "apk": 11.2,
+                "apm": 9.1,
+                "aps": 81.4
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 806,
+                "siswa_usia_sesuai": 673,
+                "penduduk_usia": 3286,
+                "apk": 24.5,
+                "apm": 20.5,
+                "aps": 83.5
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 257,
+                "siswa_usia_sesuai": 141,
+                "penduduk_usia": 3286,
+                "apk": 7.8,
+                "apm": 4.3,
+                "aps": 54.9
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 691,
+                "siswa_usia_sesuai": 546,
+                "penduduk_usia": 3091,
+                "apk": 22.4,
+                "apm": 17.7,
+                "aps": 79
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 394,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3091,
+                "apk": 12.7,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "PUNGGELAN": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 1074,
+                "siswa_usia_sesuai": 681,
+                "penduduk_usia": 1860,
+                "apk": 57.7,
+                "apm": 36.6,
+                "aps": 63.4
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 813,
+                "siswa_usia_sesuai": 713,
+                "penduduk_usia": 1860,
+                "apk": 43.7,
+                "apm": 38.3,
+                "aps": 87.7
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 4807,
+                "siswa_usia_sesuai": 4603,
+                "penduduk_usia": 6505,
+                "apk": 73.9,
+                "apm": 70.8,
+                "aps": 95.8
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 1991,
+                "siswa_usia_sesuai": 1666,
+                "penduduk_usia": 6505,
+                "apk": 30.6,
+                "apm": 25.6,
+                "aps": 83.7
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 2003,
+                "siswa_usia_sesuai": 1754,
+                "penduduk_usia": 3282,
+                "apk": 61,
+                "apm": 53.4,
+                "aps": 87.6
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 239,
+                "siswa_usia_sesuai": 152,
+                "penduduk_usia": 3282,
+                "apk": 7.3,
+                "apm": 4.6,
+                "aps": 63.6
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 1307,
+                "siswa_usia_sesuai": 1051,
+                "penduduk_usia": 3025,
+                "apk": 43.2,
+                "apm": 34.7,
+                "aps": 80.4
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 777,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3025,
+                "apk": 25.7,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "PURWANEGARA": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 837,
+                "siswa_usia_sesuai": 527,
+                "penduduk_usia": 1951,
+                "apk": 42.9,
+                "apm": 27,
+                "aps": 63
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 727,
+                "siswa_usia_sesuai": 665,
+                "penduduk_usia": 1951,
+                "apk": 37.3,
+                "apm": 34.1,
+                "aps": 91.5
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 5382,
+                "siswa_usia_sesuai": 4974,
+                "penduduk_usia": 6456,
+                "apk": 83.4,
+                "apm": 77,
+                "aps": 92.4
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 1110,
+                "siswa_usia_sesuai": 905,
+                "penduduk_usia": 6456,
+                "apk": 17.2,
+                "apm": 14,
+                "aps": 81.5
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1969,
+                "siswa_usia_sesuai": 1686,
+                "penduduk_usia": 3125,
+                "apk": 63,
+                "apm": 54,
+                "aps": 85.6
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 487,
+                "siswa_usia_sesuai": 269,
+                "penduduk_usia": 3125,
+                "apk": 15.6,
+                "apm": 8.6,
+                "aps": 55.2
+            },
+            "SMA": {
+                "jenjang": "SMA",
+                "total_siswa": 765,
+                "siswa_usia_sesuai": 614,
+                "penduduk_usia": 3126,
+                "apk": 24.5,
+                "apm": 19.6,
+                "aps": 80.3
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 48,
+                "siswa_usia_sesuai": 33,
+                "penduduk_usia": 3126,
+                "apk": 1.5,
+                "apm": 1.1,
+                "aps": 68.8
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 506,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3126,
+                "apk": 16.2,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "PURWAREJA KLAMPOK": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 624,
+                "siswa_usia_sesuai": 418,
+                "penduduk_usia": 1997,
+                "apk": 31.2,
+                "apm": 20.9,
+                "aps": 67
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 597,
+                "siswa_usia_sesuai": 535,
+                "penduduk_usia": 1997,
+                "apk": 29.9,
+                "apm": 26.8,
+                "aps": 89.6
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 3126,
+                "siswa_usia_sesuai": 2905,
+                "penduduk_usia": 6302,
+                "apk": 49.6,
+                "apm": 46.1,
+                "aps": 92.9
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 1099,
+                "siswa_usia_sesuai": 912,
+                "penduduk_usia": 6302,
+                "apk": 17.4,
+                "apm": 14.5,
+                "aps": 83
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1689,
+                "siswa_usia_sesuai": 1411,
+                "penduduk_usia": 3333,
+                "apk": 50.7,
+                "apm": 42.3,
+                "aps": 83.5
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 341,
+                "siswa_usia_sesuai": 211,
+                "penduduk_usia": 3333,
+                "apk": 10.2,
+                "apm": 6.3,
+                "aps": 61.9
+            },
+            "SMA": {
+                "jenjang": "SMA",
+                "total_siswa": 964,
+                "siswa_usia_sesuai": 752,
+                "penduduk_usia": 3154,
+                "apk": 30.6,
+                "apm": 23.8,
+                "aps": 78
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 3920,
+                "siswa_usia_sesuai": 3036,
+                "penduduk_usia": 3154,
+                "apk": 124.3,
+                "apm": 96.3,
+                "aps": 77.4
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 95,
+                "siswa_usia_sesuai": 76,
+                "penduduk_usia": 3154,
+                "apk": 3,
+                "apm": 2.4,
+                "aps": 80
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 491,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3154,
+                "apk": 15.6,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "RAKIT": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 776,
+                "siswa_usia_sesuai": 300,
+                "penduduk_usia": 1986,
+                "apk": 39.1,
+                "apm": 15.1,
+                "aps": 38.7
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 756,
+                "siswa_usia_sesuai": 642,
+                "penduduk_usia": 1986,
+                "apk": 38.1,
+                "apm": 32.3,
+                "aps": 84.9
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 2672,
+                "siswa_usia_sesuai": 2489,
+                "penduduk_usia": 6608,
+                "apk": 40.4,
+                "apm": 37.7,
+                "aps": 93.2
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 1290,
+                "siswa_usia_sesuai": 1112,
+                "penduduk_usia": 6608,
+                "apk": 19.5,
+                "apm": 16.8,
+                "aps": 86.2
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1172,
+                "siswa_usia_sesuai": 1080,
+                "penduduk_usia": 3314,
+                "apk": 35.4,
+                "apm": 32.6,
+                "aps": 92.2
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 953,
+                "siswa_usia_sesuai": 629,
+                "penduduk_usia": 3314,
+                "apk": 28.8,
+                "apm": 19,
+                "aps": 66
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 395,
+                "siswa_usia_sesuai": 315,
+                "penduduk_usia": 2964,
+                "apk": 13.3,
+                "apm": 10.6,
+                "aps": 79.7
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 92,
+                "siswa_usia_sesuai": 67,
+                "penduduk_usia": 2964,
+                "apk": 3.1,
+                "apm": 2.3,
+                "aps": 72.8
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 243,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 2964,
+                "apk": 8.2,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "SIGALUH": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 340,
+                "siswa_usia_sesuai": 155,
+                "penduduk_usia": 1914,
+                "apk": 17.8,
+                "apm": 8.1,
+                "aps": 45.6
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 353,
+                "siswa_usia_sesuai": 321,
+                "penduduk_usia": 1914,
+                "apk": 18.4,
+                "apm": 16.8,
+                "aps": 90.9
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 1784,
+                "siswa_usia_sesuai": 1673,
+                "penduduk_usia": 6060,
+                "apk": 29.4,
+                "apm": 27.6,
+                "aps": 93.8
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 328,
+                "siswa_usia_sesuai": 255,
+                "penduduk_usia": 6060,
+                "apk": 5.4,
+                "apm": 4.2,
+                "aps": 77.7
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 439,
+                "siswa_usia_sesuai": 372,
+                "penduduk_usia": 3183,
+                "apk": 13.8,
+                "apm": 11.7,
+                "aps": 84.7
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 95,
+                "siswa_usia_sesuai": 57,
+                "penduduk_usia": 3183,
+                "apk": 3,
+                "apm": 1.8,
+                "aps": 60
+            },
+            "SMA": {
+                "jenjang": "SMA",
+                "total_siswa": 592,
+                "siswa_usia_sesuai": 496,
+                "penduduk_usia": 3224,
+                "apk": 18.4,
+                "apm": 15.4,
+                "aps": 83.8
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 19,
+                "siswa_usia_sesuai": 11,
+                "penduduk_usia": 3224,
+                "apk": 0.6,
+                "apm": 0.3,
+                "aps": 57.9
+            }
+        },
+        "SUSUKAN": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 774,
+                "siswa_usia_sesuai": 541,
+                "penduduk_usia": 1915,
+                "apk": 40.4,
+                "apm": 28.3,
+                "aps": 69.9
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 544,
+                "siswa_usia_sesuai": 504,
+                "penduduk_usia": 1915,
+                "apk": 28.4,
+                "apm": 26.3,
+                "aps": 92.6
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 4539,
+                "siswa_usia_sesuai": 4187,
+                "penduduk_usia": 6212,
+                "apk": 73.1,
+                "apm": 67.4,
+                "aps": 92.2
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 638,
+                "siswa_usia_sesuai": 543,
+                "penduduk_usia": 6212,
+                "apk": 10.3,
+                "apm": 8.7,
+                "aps": 85.1
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1905,
+                "siswa_usia_sesuai": 1574,
+                "penduduk_usia": 3255,
+                "apk": 58.5,
+                "apm": 48.4,
+                "aps": 82.6
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 260,
+                "siswa_usia_sesuai": 137,
+                "penduduk_usia": 3255,
+                "apk": 8,
+                "apm": 4.2,
+                "aps": 52.7
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 445,
+                "siswa_usia_sesuai": 338,
+                "penduduk_usia": 2920,
+                "apk": 15.2,
+                "apm": 11.6,
+                "aps": 76
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 221,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 2920,
+                "apk": 7.6,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "WANADADI": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 424,
+                "siswa_usia_sesuai": 196,
+                "penduduk_usia": 1881,
+                "apk": 22.5,
+                "apm": 10.4,
+                "aps": 46.2
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 366,
+                "siswa_usia_sesuai": 335,
+                "penduduk_usia": 1881,
+                "apk": 19.5,
+                "apm": 17.8,
+                "aps": 91.5
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 2199,
+                "siswa_usia_sesuai": 2109,
+                "penduduk_usia": 6055,
+                "apk": 36.3,
+                "apm": 34.8,
+                "aps": 95.9
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 545,
+                "siswa_usia_sesuai": 460,
+                "penduduk_usia": 6055,
+                "apk": 9,
+                "apm": 7.6,
+                "aps": 84.4
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 1614,
+                "siswa_usia_sesuai": 1429,
+                "penduduk_usia": 3304,
+                "apk": 48.8,
+                "apm": 43.3,
+                "aps": 88.5
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 101,
+                "siswa_usia_sesuai": 68,
+                "penduduk_usia": 3304,
+                "apk": 3.1,
+                "apm": 2.1,
+                "aps": 67.3
+            },
+            "SMA": {
+                "jenjang": "SMA",
+                "total_siswa": 994,
+                "siswa_usia_sesuai": 825,
+                "penduduk_usia": 3163,
+                "apk": 31.4,
+                "apm": 26.1,
+                "aps": 83
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 614,
+                "siswa_usia_sesuai": 533,
+                "penduduk_usia": 3163,
+                "apk": 19.4,
+                "apm": 16.9,
+                "aps": 86.8
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 249,
+                "siswa_usia_sesuai": 184,
+                "penduduk_usia": 3163,
+                "apk": 7.9,
+                "apm": 5.8,
+                "aps": 73.9
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 19,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 3163,
+                "apk": 0.6,
+                "apm": 0,
+                "aps": 0
+            }
+        },
+        "WANAYASA": {
+            "PAUD": {
+                "jenjang": "PAUD",
+                "total_siswa": 920,
+                "siswa_usia_sesuai": 652,
+                "penduduk_usia": 1996,
+                "apk": 46.1,
+                "apm": 32.7,
+                "aps": 70.9
+            },
+            "TK": {
+                "jenjang": "TK",
+                "total_siswa": 631,
+                "siswa_usia_sesuai": 505,
+                "penduduk_usia": 1996,
+                "apk": 31.6,
+                "apm": 25.3,
+                "aps": 80
+            },
+            "SD": {
+                "jenjang": "SD",
+                "total_siswa": 3099,
+                "siswa_usia_sesuai": 2869,
+                "penduduk_usia": 6063,
+                "apk": 51.1,
+                "apm": 47.3,
+                "aps": 92.6
+            },
+            "MI": {
+                "jenjang": "MI",
+                "total_siswa": 799,
+                "siswa_usia_sesuai": 659,
+                "penduduk_usia": 6063,
+                "apk": 13.2,
+                "apm": 10.9,
+                "aps": 82.5
+            },
+            "SMP": {
+                "jenjang": "SMP",
+                "total_siswa": 769,
+                "siswa_usia_sesuai": 630,
+                "penduduk_usia": 3196,
+                "apk": 24.1,
+                "apm": 19.7,
+                "aps": 81.9
+            },
+            "MTS": {
+                "jenjang": "MTS",
+                "total_siswa": 455,
+                "siswa_usia_sesuai": 262,
+                "penduduk_usia": 3196,
+                "apk": 14.2,
+                "apm": 8.2,
+                "aps": 57.6
+            },
+            "SMK": {
+                "jenjang": "SMK",
+                "total_siswa": 874,
+                "siswa_usia_sesuai": 706,
+                "penduduk_usia": 2887,
+                "apk": 30.3,
+                "apm": 24.5,
+                "aps": 80.8
+            },
+            "MA": {
+                "jenjang": "MA",
+                "total_siswa": 60,
+                "siswa_usia_sesuai": 43,
+                "penduduk_usia": 2887,
+                "apk": 2.1,
+                "apm": 1.5,
+                "aps": 71.7
+            },
+            "PKBM": {
+                "jenjang": "PKBM",
+                "total_siswa": 316,
+                "siswa_usia_sesuai": 0,
+                "penduduk_usia": 2887,
+                "apk": 10.9,
+                "apm": 0,
+                "aps": 0
+            }
+        }
+    },
+    "tren_siswa": {
+        "2026": {
+            "PAUD": 14216,
+            "TK": 10310,
+            "SD": 67264,
+            "MI": 15773,
+            "SMP": 27775,
+            "MTS": 7612,
+            "SMA": 7431,
+            "SMK": 18563,
+            "MA": 3524,
+            "PKBM": 5911
+        }
+    },
+    "penduduk_per_usia": {
+        "0-4 tahun": 70888,
+        "5-6 tahun (PAUD)": 38497,
+        "7-12 tahun (SD)": 125847,
+        "13-15 tahun (SMP)": 65108,
+        "16-18 tahun (SMA)": 61039,
+        "18+ tahun": 867302
+    },
+    "sekolah_per_jenjang": {
+        "PAUD": 656,
+        "SD": 643,
+        "TK": 310,
+        "MI": 210,
+        "SMP": 101,
+        "MTS": 41,
+        "PKBM": 28,
+        "SMK": 27,
+        "MA": 19,
+        "SMA": 12
+    },
+    "siswa_per_jenjang": {
+        "PAUD": 14216,
+        "TK": 10310,
+        "SD": 67264,
+        "MI": 15773,
+        "SMP": 27775,
+        "MTS": 7612,
+        "SMA": 7431,
+        "SMK": 18563,
+        "MA": 3524,
+        "PKBM": 5911
+    },
+    "guru_per_status": {
+        "PNS": 2917,
+        "PPPK": 3422,
+        "GTT": 32,
+        "GTY": 3586,
+        "Honor": 260
+    },
+    "prestasi": {
+        "per_bidang": {
+            "Sains & Akademik": 1
+        },
+        "per_tingkat": {
+            "Nasional": 1
+        },
+        "per_peringkat": {
+            "Juara 1": 1
+        },
+        "total": 1
+    },
+    "akreditasi_paud": {
+        "per_kecamatan": [
+            {
+                "kecamatan": "BANJARMANGU",
+                "a": 2,
+                "b": 28,
+                "c": 3,
+                "belum": 1,
+                "total": 34,
+                "persen_a": 5.9
+            },
+            {
+                "kecamatan": "BANJARNEGARA",
+                "a": 10,
+                "b": 24,
+                "c": 9,
+                "belum": 1,
+                "total": 44,
+                "persen_a": 22.7
+            },
+            {
+                "kecamatan": "BATUR",
+                "a": 1,
+                "b": 22,
+                "c": 7,
+                "belum": 0,
+                "total": 30,
+                "persen_a": 3.3
+            },
+            {
+                "kecamatan": "BAWANG",
+                "a": 3,
+                "b": 40,
+                "c": 10,
+                "belum": 0,
+                "total": 53,
+                "persen_a": 5.7
+            },
+            {
+                "kecamatan": "KALIBENING",
+                "a": 3,
+                "b": 20,
+                "c": 5,
+                "belum": 1,
+                "total": 29,
+                "persen_a": 10.3
+            },
+            {
+                "kecamatan": "KARANGKOBAR",
+                "a": 1,
+                "b": 15,
+                "c": 5,
+                "belum": 0,
+                "total": 21,
+                "persen_a": 4.8
+            },
+            {
+                "kecamatan": "MADUKARA",
+                "a": 2,
+                "b": 22,
+                "c": 4,
+                "belum": 0,
+                "total": 28,
+                "persen_a": 7.1
+            },
+            {
+                "kecamatan": "MANDIRAJA",
+                "a": 2,
+                "b": 29,
+                "c": 7,
+                "belum": 2,
+                "total": 40,
+                "persen_a": 5
+            },
+            {
+                "kecamatan": "PAGEDONGAN",
+                "a": 1,
+                "b": 20,
+                "c": 8,
+                "belum": 0,
+                "total": 29,
+                "persen_a": 3.4
+            },
+            {
+                "kecamatan": "PAGENTAN",
+                "a": 1,
+                "b": 19,
+                "c": 4,
+                "belum": 0,
+                "total": 24,
+                "persen_a": 4.2
+            },
+            {
+                "kecamatan": "PANDANARUM",
+                "a": 0,
+                "b": 6,
+                "c": 1,
+                "belum": 1,
+                "total": 8,
+                "persen_a": 0
+            },
+            {
+                "kecamatan": "PEJAWARAN",
+                "a": 2,
+                "b": 25,
+                "c": 2,
+                "belum": 0,
+                "total": 29,
+                "persen_a": 6.9
+            },
+            {
+                "kecamatan": "PUNGGELAN",
+                "a": 2,
+                "b": 48,
+                "c": 10,
+                "belum": 2,
+                "total": 62,
+                "persen_a": 3.2
+            },
+            {
+                "kecamatan": "PURWANEGARA",
+                "a": 0,
+                "b": 36,
+                "c": 3,
+                "belum": 1,
+                "total": 40,
+                "persen_a": 0
+            },
+            {
+                "kecamatan": "PURWAREJA KLAMPOK",
+                "a": 2,
+                "b": 21,
+                "c": 3,
+                "belum": 0,
+                "total": 26,
+                "persen_a": 7.7
+            },
+            {
+                "kecamatan": "RAKIT",
+                "a": 3,
+                "b": 37,
+                "c": 6,
+                "belum": 1,
+                "total": 47,
+                "persen_a": 6.4
+            },
+            {
+                "kecamatan": "SIGALUH",
+                "a": 0,
+                "b": 20,
+                "c": 3,
+                "belum": 0,
+                "total": 23,
+                "persen_a": 0
+            },
+            {
+                "kecamatan": "SUSUKAN",
+                "a": 0,
+                "b": 21,
+                "c": 8,
+                "belum": 0,
+                "total": 29,
+                "persen_a": 0
+            },
+            {
+                "kecamatan": "WANADADI",
+                "a": 2,
+                "b": 25,
+                "c": 5,
+                "belum": 0,
+                "total": 32,
+                "persen_a": 6.3
+            },
+            {
+                "kecamatan": "WANAYASA",
+                "a": 1,
+                "b": 21,
+                "c": 5,
+                "belum": 1,
+                "total": 28,
+                "persen_a": 3.6
+            }
+        ],
+        "total_sekolah": 656,
+        "total_a": 38,
+        "total_b": 499,
+        "total_c": 108,
+        "total_belum": 11
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "$schema": "https://fonts.schema.org",
+    "name": "dasbor-pendidikan",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite"
+    },
+    "dependencies": {
+        "@tailwindcss/vite": "^4.1.0",
+        "tailwindcss": "^4.1.0",
+        "laravel-vite-plugin": "^3.0.0",
+        "vite": "^8.0.0"
+    },
+    "devDependencies": {}
+}
