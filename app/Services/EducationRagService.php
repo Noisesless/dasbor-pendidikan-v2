@@ -237,10 +237,18 @@ class EducationRagService
         $preferredModel = (string) config('services.gemini.model', 'gemini-3.5-flash-lite');
         $modelList = array_values(array_unique(array_merge([$preferredModel], self::CANDIDATE_MODELS)));
 
+        $attempt = 0;
         foreach ($modelList as $model) {
+            $attempt++;
+            if ($attempt > 2) {
+                // Batasi maksimal 2 kandidat model online agar tidak menahan antrean pengguna
+                break;
+            }
+
             try {
+                $timeout = $attempt === 1 ? 4 : 3;
                 $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-                $response = Http::timeout(6)
+                $response = Http::timeout($timeout)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->post($url, [
                         'systemInstruction' => [
