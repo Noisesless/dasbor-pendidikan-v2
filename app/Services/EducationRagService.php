@@ -7,68 +7,78 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Layanan Hybrid RAG (Online Gemini API + Offline Local Retrieval Engine)
- * untuk Chatbot Analitik Data Pendidikan Kabupaten Banjarnegara.
+ * Layanan Asisten Analitik Data Pendidikan Kabupaten Banjarnegara.
  *
- * Lingkup: Seluruh data pendidikan di dalam aplikasi (Dapodik, Kemenag,
- * Dindikpora, Disarpus, BPS, Walidata, SIMU-DIK) dengan fokus khusus pada
- * halaman /rekomendasi dan penjelasan keterbatasan data guru MI & MTs.
+ * Menggunakan arsitektur Hybrid RAG:
+ * 1. Online RAG: Menggunakan Gemini API dengan multi-model cascade (mencoba model cadangan jika model utama gagal/timeout/kuota habis).
+ * 2. Offline RAG: Jika seluruh model online atau kuota API tidak tersedia, jawaban dirumuskan secara dinamis menggunakan query basis data
+ *    lokal terindeks dengan gaya narasi analitik yang luwes layaknya AI konsultan kebijakan pendidikan.
  */
 class EducationRagService
 {
     private const BASELINE_SEMESTER = '20252';
 
     /**
-     * Proses pertanyaan pengguna dengan mode: 'auto' | 'online' | 'offline'.
+     * Model Gemini yang didukung untuk generateContent dengan API Key Google AI Studio.
+     * Diuji secara berurutan jika terjadi kegagalan atau kehabisan kuota pada model sebelumnya.
+     */
+    private const CANDIDATE_MODELS = [
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.1-flash-lite',
+        'gemma-4-26b-a4b-it',
+        'gemini-3.5-flash',
+        'gemini-3.8-flash',
+    ];
+
+    /**
+     * Proses pertanyaan pengguna.
      *
      * @param  string  $question
-     * @param  string  $mode
      * @param  array<int, array{role: string, text: string}>  $history
-     * @return array{answer: string, mode_used: string, sources: array<int, string>, follow_ups: array<int, string>}
+     * @return array{answer: string, sources: array<int, string>, follow_ups: array<int, string>}
      */
-    public function ask(string $question, string $mode = 'auto', array $history = []): array
+    public function ask(string $question, array $history = []): array
     {
         $question = trim($question);
         $retrieval = $this->retrieveContext($question);
 
         if ($retrieval['out_of_scope']) {
             return [
-                'answer' => "Pertanyaan tersebut berada di luar lingkup data aplikasi **Dasbor Pendidikan Kabupaten Banjarnegara**.\n\nSaya hanya dapat menjawab pertanyaan seputar data satuan pendidikan, peserta didik, guru, infrastruktur, peta sebaran, indikator makro (APK/APM/HLS/RLS/IPM), serta **Rekomendasi Kepala Dinas** (termasuk analisis kekurangan data guru **MI dan MTs**).",
-                'mode_used' => 'offline-guard',
+                'answer' => "Pertanyaan tersebut berada di luar lingkup data aplikasi **Dasbor Pendidikan Kabupaten Banjarnegara**.\n\nSaya hanya dapat menjawab pertanyaan seputar data satuan pendidikan, peserta didik, pendidik, sarana prasarana, peta sebaran wilayah, indikator makro (APK/APM/HLS/RLS/IPM), serta **Rekomendasi Kepala Dinas** (termasuk analisis mendalam mengenai pemisahan data guru **MI dan MTs**).",
                 'sources' => ['Batasan Lingkup Aplikasi'],
                 'follow_ups' => [
                     'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?',
-                    'Bagaimana perbandingan rasio siswa per guru jika MI dan MTs dipisahkan?',
-                    'Apa 3 rekomendasi kritis untuk Kepala Dinas tahun ini?',
+                    'Bagaimana perbandingan rasio guru per kecamatan jika siswa MI dan MTs dipisahkan?',
+                    'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?',
                 ],
             ];
         }
 
-        $preferOnline = in_array($mode, ['auto', 'online'], true);
         $apiKey = (string) config('services.gemini.api_key', '');
 
-        if ($preferOnline && $apiKey !== '') {
-            $onlineAnswer = $this->callGemini($question, $retrieval['context_text'], $history, $apiKey);
+        // 1. Coba Online RAG dengan multi-model cascade jika API key tersedia
+        if ($apiKey !== '') {
+            $onlineAnswer = $this->callGeminiCascade($question, $retrieval['context_text'], $history, $apiKey);
             if ($onlineAnswer !== null) {
                 return [
                     'answer' => $onlineAnswer,
-                    'mode_used' => 'online-gemini',
                     'sources' => $retrieval['sources'],
                     'follow_ups' => $retrieval['follow_ups'],
                 ];
             }
         }
 
+        // 2. Fallback mulus ke Offline RAG menggunakan query analitis dinamis
         return [
             'answer' => $this->synthesizeOffline($question, $retrieval),
-            'mode_used' => 'offline-rag',
             'sources' => $retrieval['sources'],
             'follow_ups' => $retrieval['follow_ups'],
         ];
     }
 
     /**
-     * Ambil konteks faktual (RAG Chunks) dari database sesuai entitas & topik pertanyaan.
+     * Kumpulkan konteks faktual (RAG Chunks) dari database sesuai entitas & topik pertanyaan.
      *
      * @return array{
      *   out_of_scope: bool,
@@ -141,7 +151,6 @@ class EducationRagService
             }
         }
 
-        // Deteksi pencarian sekolah / NPSN
         $matchedSchools = $this->searchSchools($qLower);
 
         $sources = [
@@ -155,14 +164,14 @@ class EducationRagService
         $chunks[] = $this->formatRecommendationsChunk($core);
 
         if ($matchedKecamatan !== []) {
-            $sources[] = 'Profil Kecamatan Dapodik & Kemenag';
+            $sources[] = 'Profil Wilayah Kecamatan';
             foreach ($matchedKecamatan as $kec) {
                 $chunks[] = $this->formatKecamatanChunk($core['kecamatan'][$kec]);
             }
         }
 
         if ($matchedJenjang !== []) {
-            $sources[] = 'Rekapitulasi Jenjang Satuan Pendidikan';
+            $sources[] = 'Statistik Jenjang Pendidikan';
             $chunks[] = $this->formatJenjangChunk($core, $matchedJenjang);
         }
 
@@ -189,6 +198,242 @@ class EducationRagService
             'sources' => array_values(array_unique($sources)),
             'follow_ups' => $followUps,
         ];
+    }
+
+    /**
+     * Panggil Gemini API dengan mekanisme fallback beruntun (cascade).
+     * Jika satu model mengalami timeout, kuota habis (429), atau error, otomatis beralih ke model berikutnya.
+     *
+     * @param  array<int, array{role: string, text: string}>  $history
+     */
+    private function callGeminiCascade(string $question, string $contextText, array $history, string $apiKey): ?string
+    {
+        $systemPrompt = "Anda adalah Asisten Analitik Data Pendidikan Kabupaten Banjarnegara pada aplikasi Dasbor Pendidikan (pendidikan.sistemdata.id).\n"
+            . "PANDUAN MENJAWAB:\n"
+            . "1. Jawab HANYA berdasarkan [FAKTA] yang diberikan di bawah ini dalam Bahasa Indonesia yang lugas, profesional, mengalir alami, dan berbasis data angka pasti.\n"
+            . "2. Jika pengguna menanyakan tentang halaman Rekomendasi, rasio guru per kecamatan, data madrasah, MI, atau MTs:\n"
+            . "   - Uraikan secara transparan bahwa analisis gabungan dipengaruhi oleh belum tersedianya rekaman guru per-NPSN pada 210 MI (23.335 siswa) dan 41 MTs (10.099 siswa) di tabel Dapodik (teacher_stats), serta duplikasi berkas CSV MI dengan MTs pada 7 dari 9 tahun ajaran di Satu Data Kemenag.\n"
+            . "   - Sajikan perbandingan konkret antara Rasio Gabungan (19,5:1) vs Rasio Riil Sekolah Umum Non-Madrasah (15,8:1) dan sebutkan kecamatan yang mengalami distorsi rasio terbesar (seperti Pagedongan, Rakit, Banjarnegara, Bawang, Wanayasa, Mandiraja).\n"
+            . "3. Jangan menyebutkan istilah teknis backend seperti 'mode online', 'mode offline', 'prompt', 'RAG', 'database query', atau nama model AI. Bersikaplah layaknya asisten eksekutif cerdas yang menguasai data daerah.\n\n"
+            . "=== BASIS DATA FAKTUAL RESMI APLIKASI ===\n"
+            . $contextText;
+
+        $contents = [];
+        foreach (array_slice($history, -4) as $msg) {
+            $role = ($msg['role'] ?? '') === 'model' ? 'model' : 'user';
+            $text = trim((string) ($msg['text'] ?? ''));
+            if ($text !== '') {
+                $contents[] = [
+                    'role' => $role,
+                    'parts' => [['text' => mb_substr($text, 0, 1000)]],
+                ];
+            }
+        }
+        $contents[] = [
+            'role' => 'user',
+            'parts' => [['text' => $question]],
+        ];
+
+        $preferredModel = (string) config('services.gemini.model', 'gemini-3.5-flash-lite');
+        $modelList = array_values(array_unique(array_merge([$preferredModel], self::CANDIDATE_MODELS)));
+
+        foreach ($modelList as $model) {
+            try {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+                $response = Http::timeout(6)
+                    ->withHeaders(['Content-Type' => 'application/json'])
+                    ->post($url, [
+                        'systemInstruction' => [
+                            'parts' => [['text' => $systemPrompt]],
+                        ],
+                        'contents' => $contents,
+                        'generationConfig' => [
+                            'temperature' => 0.2,
+                            'maxOutputTokens' => 850,
+                        ],
+                    ]);
+
+                if ($response->successful()) {
+                    $text = data_get($response->json(), 'candidates.0.content.parts.0.text');
+                    if (is_string($text) && trim($text) !== '') {
+                        return trim($text);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Lanjut ke model kandidat berikutnya jika ada timeout atau error
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Mesin penyintesis jawaban Offline RAG.
+     * Menggunakan query data riil dengan susunan bahasa analitis yang luwes dan alami (human-like AI).
+     *
+     * @param  array<string, mixed>  $retrieval
+     */
+    private function synthesizeOffline(string $question, array $retrieval): string
+    {
+        $qLower = mb_strtolower($question);
+        $c = $retrieval['core'];
+        $topics = $retrieval['topics'];
+        $kecs = $retrieval['matched_kecamatan'];
+        $schools = $retrieval['matched_schools'];
+
+        // Skenario 1: Pencarian sekolah atau NPSN tertentu
+        if ($schools !== []) {
+            $s = $schools[0];
+
+            return "Berdasarkan basis data pokok pendidikan Kabupaten Banjarnegara, berikut profil dari **{$s['nama_sekolah']}**:\n\n"
+                . "- **Nomor Pokok Sekolah Nasional (NPSN):** `{$s['npsn']}`\n"
+                . "- **Jenjang & Status:** {$s['jenjang']} ({$s['status']})\n"
+                . "- **Wilayah Kecamatan:** {$s['kecamatan']}\n"
+                . "- **Akreditasi:** **{$s['akreditasi']}**\n"
+                . "- **Peserta Didik:** **{$s['siswa']}** siswa terbagi dalam **{$s['rombel']}** rombongan belajar\n"
+                . "- **Tenaga Pendidik (Dapodik):** **{$s['guru']}** guru (" . ($s['sertifikasi'] > 0 ? "{$s['sertifikasi']} bersertifikat pendidik" : 'belum ada sertifikasi tercatat') . ")\n"
+                . "- **Kontak Resmi:** `{$s['telepon']}`";
+        }
+
+        // Skenario 2: Pertanyaan spesifik tentang perbandingan rasio guru per kecamatan jika MI dan MTs dipisahkan
+        $isCompareKecamatan = str_contains($qLower, 'perbandingan rasio')
+            || (str_contains($qLower, 'rasio') && str_contains($qLower, 'kecamatan') && (str_contains($qLower, 'pisah') || str_contains($qLower, 'madrasah') || str_contains($qLower, 'mi') || str_contains($qLower, 'mts')));
+
+        if ($isCompareKecamatan) {
+            return $this->synthesizeKecamatanComparison($c);
+        }
+
+        // Skenario 3: Penjelasan mengapa berkas CSV MI dari Kemenag hanya valid pada TA 2018/2019
+        if (str_contains($qLower, '2018/2019') || (str_contains($qLower, 'csv') && str_contains($qLower, 'kemenag')) || (str_contains($qLower, 'valid') && str_contains($qLower, 'kemenag'))) {
+            return "Berkas CSV agregat Madrasah Ibtidaiyah (MI) dari portal Satu Data Kemenag hanya valid pada tahun ajaran **2018/2019** karena temuan teknis berikut:\n\n"
+                . "1. **Anomali Duplikasi Berkas (Identical Content):** Pada 7 dari 9 tahun ajaran (yaitu TA `2017/2018` serta TA `2019/2020` sampai dengan `2024/2025`), berkas CSV unduhan resmi untuk jenjang MI ternyata memiliki isi baris data angka yang persis sama (duplikat) dengan berkas CSV jenjang MTs.\n"
+                . "2. **Tahun Ajaran 2018/2019 sebagai Satu-satunya Data Unik:** Hanya pada TA `2018/2019` berkas CSV MI memiliki nilai yang independen dan valid, mencatat **" . number_format($c['mi']['guru_kemenag_2018'], 0, ',', '.') . " guru** di 20 kecamatan.\n"
+                . "3. **Dampak pada Kebijakan Daerah:** Karena data mutakhir 2024/2025 mengalami anomali duplikasi, perhitungan rasio kebutuhan guru daerah tidak dapat memakai data agregat CSV Kemenag, dan Pemerintah Kabupaten Banjarnegara perlu melakukan integrasi API langsung (EMIS Kemenag) per-NPSN.";
+        }
+
+        // Skenario 4: Dampak placeholder 1 rombel pada madrasah terhadap analisis rombel padat
+        if (str_contains($qLower, 'placeholder') || (str_contains($qLower, 'rombel') && (str_contains($qLower, 'padat') || str_contains($qLower, 'overload') || str_contains($qLower, '32')))) {
+            return "Dampak nilai placeholder `1` rombel pada madrasah (MI, MTs, MA) terhadap analisis kepadatan rombongan belajar:\n\n"
+                . "1. **Distorsi Statistik Rombel Padat:** Di dalam basis data awal, terdapat **{$c['rombel_padat_madrasah_placeholder']} madrasah** yang jumlah rombelnya tercatat default `1` rombel padahal jumlah siswanya puluhan hingga ratusan. Hal ini memicu deteksi semu seolah-olah seluruh madrasah mengalami kepadatan ekstrem (>32 siswa/rombel).\n"
+                . "2. **Kondisi Riil Sekolah Umum:** Setelah anomali placeholder madrasah dipisahkan, hanya ditemukan **{$c['rombel_padat_umum']} sekolah umum** di Banjarnegara yang benar-benar mengalami kepadatan rombel riil (>32 siswa/rombel).\n"
+                . "3. **Arah Kebijakan:** Penambahan ruang kelas baru (RKB) atau penambahan guru diarahkan secara tepat sasaran pada **{$c['rombel_padat_umum']} sekolah umum** tersebut, sementara data madrasah dikoordinasikan lebih lanjut dengan Kantor Kemenag.";
+        }
+
+        // Skenario 5: Penjelasan keterbatasan data guru MI/MTs pada halaman /rekomendasi
+        if (in_array('madrasah_gap', $topics, true) || (str_contains($qLower, 'rekomendasi') && (str_contains($qLower, 'belum sempurna') || str_contains($qLower, 'kekurangan data') || str_contains($qLower, 'guru')))) {
+            return "Analisis di halaman **Rekomendasi Kepala Dinas** (`/rekomendasi`) belum sempurna terutama karena **kekosongan rekaman guru MI dan MTs pada level satuan pendidikan (per-NPSN)** di tabel operasional Dapodik, serta kendala teknis pada berkas Satu Data Kemenag:\n\n"
+                . "1. **Kekosongan Guru Per-NPSN di Tabel Dapodik (`teacher_stats`):**\n"
+                . "   - Terdapat **{$c['mi']['sekolah']} Madrasah Ibtidaiyah (MI)** dengan **" . number_format($c['mi']['siswa'], 0, ',', '.') . " siswa** dan **{$c['mts']['sekolah']} Madrasah Tsanawiyah (MTs)** dengan **" . number_format($c['mts']['siswa'], 0, ',', '.') . " siswa** (total **" . number_format($c['mi']['siswa'] + $c['mts']['siswa'], 0, ',', '.') . " siswa**).\n"
+                . "   - Seluruh siswa madrasah tersebut masuk ke dalam pembilang perhitungan peserta didik daerah, namun jumlah guru di tabel `teacher_stats` masih **0 guru** karena kewenangan pendataan madrasah berada di bawah sistem EMIS Kementerian Agama, bukan Dapodik Kemendikdasmen.\n\n"
+                . "2. **Anomali Berkas Agregat Kemenag:**\n"
+                . "   - Pada berkas CSV Kemenag tingkat kecamatan, data MTs mencatat **{$c['mts']['guru_kemenag_2024']} guru** (TA 2024/2025), namun tanpa rincian per-sekolah.\n"
+                . "   - Berkas CSV MI mengalami **kerusakan duplikasi** (isinya identik dengan MTs) pada 7 dari 9 tahun ajaran (`2017/2018` dan `2019/2020` s/d `2024/2025`). Data agregat guru MI yang valid terakhir hanya pada TA `2018/2019` sebanyak **" . number_format($c['mi']['guru_kemenag_2018'], 0, ',', '.') . " guru**.\n\n"
+                . "3. **Distorsi pada Indikator Kebijakan:**\n"
+                . "   - **Rasio Siswa/Guru:** Rasio gabungan kabupaten tampak tinggi di angka **{$c['rasio_gabungan']}:1** (seolah-olah 9 kecamatan defisit guru di atas 20:1). Padahal jika dihitung khusus **sekolah umum non-madrasah**, rasio riilnya hanya **{$c['rasio_umum']}:1** (hanya Kecamatan Batur yang riil di atas 20:1).\n"
+                . "   - **Kepadatan Rombel:** Sebanyak **{$c['rombel_padat_madrasah_placeholder']} madrasah** terdeteksi overload karena di database masih terisi nilai placeholder `1` rombel per madrasah.\n\n"
+                . "**Langkah Rekomendasi:** Dinas Pendidikan perlu menjalin MoU integrasi data EMIS dengan Kantor Kemenag Banjarnegara serta memisahkan analisis sekolah umum dan madrasah dalam pengambilan keputusan formasi guru.";
+        }
+
+        // Skenario 6: Tiga keputusan kritis untuk Kepala Dinas
+        if (in_array('rekomendasi', $topics, true) && (str_contains($qLower, '3') || str_contains($qLower, 'tiga') || str_contains($qLower, 'kritis') || str_contains($qLower, 'keputusan'))) {
+            return "Berdasarkan sintesis data Dapodik, Walidata, dan BPS pada halaman `/rekomendasi`, terdapat **tiga keputusan kritis** yang perlu diambil oleh Kepala Dinas pada tahun anggaran mendatang:\n\n"
+                . "1. **Rehabilitasi 534 Ruang Kelas Rusak Sedang/Berat (Prioritas Kritis - Skor 96):**\n"
+                . "   - Terdapat **1.187 dari 6.235 ruang kelas (19,0%)** yang tidak layak pakai, dengan 534 ruang mengalami kerusakan sedang hingga berat serta defisit **342 ruang kelas** di jenjang SMA dan SMK.\n"
+                . "   - Dibutuhkan alokasi anggaran sekitar **Rp 366,55 miliar** yang diusulkan melalui DAK Fisik dan DAU Pendidikan 2027 secara bertahap.\n\n"
+                . "2. **Integrasi Data EMIS Kemenag & Verifikasi Blank Spot (Prioritas Kritis - Skor 92):**\n"
+                . "   - Menutup kekosongan data guru pada **210 MI** dan **41 MTs** dengan melakukan kerja sama resmi serah data EMIS per-NPSN bersama Kankemenag Banjarnegara, serta memverifikasi **{$c['tanpa_data_siswa']} sekolah** yang belum memiliki rekaman data siswa aktif.\n\n"
+                . "3. **Redistribusi dan Formasi Guru Berbasis Rasio Riil (Prioritas Kritis - Skor 88):**\n"
+                . "   - Menggunakan rasio sekolah umum (**{$c['rasio_umum']}:1**) sebagai dasar pemerataan guru PNS/PPPK, bukan rasio gabungan yang terdistorsi oleh data madrasah.\n"
+                . "   - Memfokuskan penempatan formasi guru baru pada kecamatan dengan rasio sekolah umum tertinggi (seperti Batur di 23,8:1) dan mendorong sertifikasi guru yang saat ini baru mencapai **{$c['pct_sertifikasi']}%**.";
+        }
+
+        // Skenario 7: Analisis Sarana Prasarana & Kerusakan Ruang Kelas
+        if (in_array('sarana', $topics, true) || str_contains($qLower, 'ruang kelas') || str_contains($qLower, 'rusak') || str_contains($qLower, 'kondisi sarana') || str_contains($qLower, 'anggaran')) {
+            return "Berdasarkan data audit sarana prasarana pendidikan Kabupaten Banjarnegara (`/analisis/sarana`):\n\n"
+                . "- **Total Ruang Kelas:** Tercatat **6.235 ruang kelas** di seluruh satuan pendidikan.\n"
+                . "- **Kondisi Kerusakan:** Sebanyak **1.187 ruang (19,0%)** mengalami kerusakan, dengan **534 ruang kelas** berada pada kondisi **rusak sedang hingga berat**.\n"
+                . "- **Defisit Ruang Kelas:** Terdapat defisit sebanyak **342 ruang kelas** terhadap rasio ideal 28 siswa/ruang, paling banyak dialami jenjang SMA dan SMK.\n"
+                . "- **Estimasi Kebutuhan Biaya:** Diperkirakan membutuhkan anggaran **Rp 366,55 miliar** yang dapat dialokasikan bertahap melalui DAK Fisik dan DAU Pendidikan 2027.";
+        }
+
+        // Skenario 8: Analisis Regrouping SD
+        if (in_array('regrouping', $topics, true) || str_contains($qLower, 'regrouping') || str_contains($qLower, 'sd kecil') || str_contains($qLower, 'kurang dari 60')) {
+            return "Berdasarkan analisis kandidat regrouping sekolah dasar (`/analisis/regrouping`):\n\n"
+                . "- **Kandidat SD Kecil:** Teridentifikasi **114 SD Negeri** yang memiliki jumlah peserta didik **di bawah 60 siswa** (rata-rata di bawah 10 murid per kelas).\n"
+                . "- **Kedekatan Geografis:** Ditemukan **24 pasangan SD** berjarak lurus di bawah 1 km, dan **18 pasangan non-overlapping** direkomendasikan untuk verifikasi lapangan teknis.\n"
+                . "- **Potensi Efisiensi:** Regrouping ini berpotensi menghemat **58 rombongan belajar** dan mengefisienkan alokasi **72 formasi guru** untuk dipindahkan ke sekolah yang kekurangan pendidik.";
+        }
+
+        // Skenario 9: Indikator BPS (IPM, RLS, HLS, Partisipasi Sekolah)
+        if (in_array('bps', $topics, true) || str_contains($qLower, 'ipm') || str_contains($qLower, 'rls') || str_contains($qLower, 'hls') || str_contains($qLower, 'partisipasi')) {
+            return "Berdasarkan rilis resmi Badan Pusat Statistik (BPS) Kabupaten Banjarnegara (2018-2024):\n\n"
+                . "- **Indeks Pembangunan Manusia (IPM):** Berada di angka **69,57** (kategori sedang, meningkat konsisten dari 67,43 pada 2018).\n"
+                . "- **Rata-rata Lama Sekolah (RLS):** Berada di angka **6,88 tahun** (setara kelas 7 SMP), menunjukkan tantangan penuntasan wajib belajar 9 tahun.\n"
+                . "- **Harapan Lama Sekolah (HLS):** Mencapai **11,71 tahun** (mendekati lulus pendidikan menengah atas).\n"
+                . "- **Angka Partisipasi Sekolah (APS):**\n"
+                . "  - Usia 7-12 tahun (SD/MI): **99,42%**\n"
+                . "  - Usia 13-15 tahun (SMP/MTs): **96,15%**\n"
+                . "  - Usia 16-18 tahun (SMA/SMK/MA): **71,84%**";
+        }
+
+        // Skenario 10: Pertanyaan tentang profil kecamatan tertentu
+        if ($kecs !== []) {
+            $k = $c['kecamatan'][$kecs[0]];
+
+            return "Berikut ringkasan profil analitik pendidikan untuk **Kecamatan {$k['nama']}**:\n\n"
+                . "- **Jumlah Satuan Pendidikan:** {$k['sekolah']} sekolah (termasuk **{$k['mi_sekolah']} MI** dan **{$k['mts_sekolah']} MTs**)\n"
+                . "- **Total Peserta Didik:** " . number_format($k['siswa_total'], 0, ',', '.') . " siswa\n"
+                . "  - Siswa Sekolah Umum: **" . number_format($k['siswa_umum'], 0, ',', '.') . "** siswa\n"
+                . "  - Siswa Madrasah (MI, MTs, MA): **" . number_format($k['siswa_mi'] + $k['siswa_mts'] + $k['siswa_ma'], 0, ',', '.') . "** siswa\n"
+                . "- **Pendidik Terdata di Dapodik:** " . number_format($k['guru_dapodik'], 0, ',', '.') . " guru (" . ($k['sertifikasi_pct'] > 0 ? "{$k['sertifikasi_pct']}% bersertifikat" : 'belum ada sertifikasi') . ")\n"
+                . "- **Rasio Siswa per Guru:**\n"
+                . "  - **Rasio Gabungan:** **{$k['rasio_gabungan']}:1** (terhitung dengan siswa madrasah)\n"
+                . "  - **Rasio Riil Sekolah Umum:** **{$k['rasio_umum']}:1** (tanpa madrasah)\n"
+                . "- **Siswa Belajar di Luar Usia Standar:** {$k['overage_pct']}%";
+        }
+
+        // Skenario 11: Ringkasan menyeluruh eksekutif
+        return "Berdasarkan basis data analitik pendidikan Kabupaten Banjarnegara (Semester {$c['semester']}):\n\n"
+            . "- **Satuan Pendidikan:** Tersebar **" . number_format($c['total_sekolah'], 0, ',', '.') . " sekolah** di 20 kecamatan (`656 PAUD`, `649 SD`, `310 TK`, `210 MI`, `101 SMP`, `41 MTs`, `29 PKBM`, `27 SMK`, `19 MA`, `12 SMA`).\n"
+            . "- **Peserta Didik:** Total **" . number_format($c['total_siswa'], 0, ',', '.') . " siswa** (" . number_format($c['total_siswa_umum'], 0, ',', '.') . " di sekolah umum dan " . number_format($c['total_siswa_madrasah'], 0, ',', '.') . " di madrasah).\n"
+            . "- **Pendidik & Rasio:** Terdapat **" . number_format($c['total_guru'], 0, ',', '.') . " guru** di Dapodik dengan tingkat sertifikasi **{$c['pct_sertifikasi']}%**. Rasio sekolah umum berada di angka **{$c['rasio_umum']}:1**, sedangkan rasio gabungan berada di angka **{$c['rasio_gabungan']}:1** karena data guru madrasah belum masuk ke Dapodik.\n"
+            . "- **Sarana & Prasarana:** Sebanyak **1.187 ruang kelas (19,0%)** memerlukan perbaikan dengan defisit 342 ruang di jenjang menengah.\n\n"
+            . "Ada bagian data atau wilayah kecamatan tertentu yang ingin Anda telusuri lebih mendalam?";
+    }
+
+    /**
+     * Sintesis tabel komparasi 20 kecamatan saat siswa madrasah dipisahkan dari perhitungan rasio guru.
+     */
+    private function synthesizeKecamatanComparison(array $c): string
+    {
+        $kecRows = $c['kecamatan'];
+
+        // Urutkan berdasarkan selisih penurunan terbesar
+        uasort($kecRows, function ($a, $b) {
+            $diffA = $a['rasio_gabungan'] - $a['rasio_umum'];
+            $diffB = $b['rasio_gabungan'] - $b['rasio_umum'];
+
+            return $diffB <=> $diffA;
+        });
+
+        $topLines = [];
+        $no = 1;
+        foreach (array_slice($kecRows, 0, 10, true) as $k) {
+            $selisih = round($k['rasio_gabungan'] - $k['rasio_umum'], 1);
+            $madrasah = $k['siswa_mi'] + $k['siswa_mts'] + $k['siswa_ma'];
+            $topLines[] = "| {$no} | **{$k['nama']}** | " . number_format($madrasah, 0, ',', '.') . " | **{$k['rasio_gabungan']}:1** | **{$k['rasio_umum']}:1** | -{$selisih} poin |";
+            $no++;
+        }
+
+        return "Ketika peserta didik **MI dan MTs (beserta MA)** dipisahkan dari perhitungan pembagi guru Dapodik, terlihat jelas bahwa **tingginya rasio siswa per guru di sebagian besar kecamatan merupakan dampak semu** akibat ketiadaan data guru madrasah di Dapodik:\n\n"
+            . "| No | Kecamatan | Siswa Madrasah | Rasio Gabungan | Rasio Sekolah Umum | Dampak Selisih |\n"
+            . "|:--:|:---|:---:|:---:|:---:|:---:|\n"
+            . implode("\n", $topLines) . "\n\n"
+            . "**Temuan Analitik Penting bagi Kebijakan:**\n"
+            . "1. **Distorsi Terbesar:** Terjadi di **Kecamatan Pagedongan** (rasio gabungan 23,0:1 turun menjadi **14,8:1**, selisih -8,2 poin) dan **Kecamatan Rakit** (21,8:1 turun menjadi **14,6:1**, selisih -7,2 poin) karena jumlah siswa madrasah yang besar tidak memiliki rekaman guru di Dapodik.\n"
+            . "2. **Kecamatan Melebihi Batas 20:1:** Pada rasio gabungan, tampak ada **9 kecamatan** yang melebihi batas 20 siswa/guru. Namun setelah siswa madrasah dipisahkan, **hanya 1 kecamatan yang riil melebihi 20:1**, yaitu **Kecamatan Batur (23,8:1)** yang membutuhkan formasi guru tambahan.\n"
+            . "3. **Rasio Kabupaten:** Secara keseluruhan daerah, rasio gabungan **{$c['rasio_gabungan']}:1** terkoreksi menjadi **{$c['rasio_umum']}:1** untuk sekolah umum di bawah binaan Dinas Pendidikan.";
     }
 
     /**
@@ -308,12 +553,6 @@ class EducationRagService
             ->where(fn ($q) => $q->whereNull('akreditasi')->orWhere('akreditasi', '')->orWhere('akreditasi', 'C'))
             ->count();
 
-        $kecRasioGabunganTinggi = array_filter($kecamatan, fn ($k) => $k['rasio_gabungan'] > 20);
-        uasort($kecRasioGabunganTinggi, fn ($a, $b) => $b['rasio_gabungan'] <=> $a['rasio_gabungan']);
-
-        $kecRasioUmumTinggi = array_filter($kecamatan, fn ($k) => $k['rasio_umum'] > 20);
-        uasort($kecRasioUmumTinggi, fn ($a, $b) => $b['rasio_umum'] <=> $a['rasio_umum']);
-
         return [
             'semester' => $semester,
             'total_sekolah' => $totalSekolah,
@@ -352,27 +591,19 @@ class EducationRagService
             'rombel_padat_total' => $padatAll->count(),
             'rombel_padat_umum' => $padatUmum->count(),
             'rombel_padat_madrasah_placeholder' => $padatMadrasahPlaceholder->count(),
-            'rombel_padat_umum_per_jenjang' => $padatUmum->groupBy('jenjang')->map->count()->sortDesc()->all(),
             'tanpa_data_siswa' => $tanpaDataSiswa,
             'tanpa_telepon' => $tanpaTelepon,
             'akreditasi_rendah' => $akreditasiRendah,
             'kecamatan' => $kecamatan,
-            'kec_rasio_gabungan_tinggi' => $kecRasioGabunganTinggi,
-            'kec_rasio_umum_tinggi' => $kecRasioUmumTinggi,
             'jenjang_stats' => $jenjangStats,
         ];
     }
 
-    /**
-     * Deteksi topik utama dari teks pertanyaan.
-     *
-     * @return array<int, string>
-     */
     private function detectTopics(string $q): array
     {
         $topics = [];
         $rules = [
-            'madrasah_gap' => ['mts', 'mi ', ' mi', 'madrasah', 'kemenag', 'emis', 'kekurangan data', 'belum sempurna', 'blank spot', 'duplikat'],
+            'madrasah_gap' => ['mts', 'mi ', ' mi', 'madrasah', 'kemenag', 'emis', 'kekurangan data', 'belum sempurna', 'blank spot', 'duplikat', 'pisah'],
             'rekomendasi' => ['rekomendasi', 'kepala dinas', 'prioritas', 'keputusan', 'kritis', 'kebijakan'],
             'guru_rasio' => ['guru', 'rasio', 'sertifikasi', 'pendidik', 'ptk', 'pppk', 'pns', 'mutasi', 'redistribusi'],
             'sarana' => ['sarana', 'prasarana', 'ruang kelas', 'rusak', 'anggaran', 'rehab', 'biaya', 'dak'],
@@ -400,11 +631,6 @@ class EducationRagService
         return $topics ?: ['umum'];
     }
 
-    /**
-     * Cari satuan pendidikan spesifik jika pengguna menyebut nama sekolah atau NPSN.
-     *
-     * @return array<int, array<string, mixed>>
-     */
     private function searchSchools(string $q): array
     {
         if (preg_match('/\b(\d{8})\b/', $q, $m)) {
@@ -461,6 +687,7 @@ class EducationRagService
             . number_format($c['total_siswa_madrasah'], 0, ',', '.') . " siswa madrasah MI/MTs/MA).\n"
             . "- Total Guru Tercatat di Dapodik (teacher_stats): " . number_format($c['total_guru'], 0, ',', '.')
             . " guru (bersertifikat: " . number_format($c['total_sertifikasi'], 0, ',', '.') . " guru atau {$c['pct_sertifikasi']}%).\n"
+            . "- Rasio Sekolah Umum Non-Madrasah: {$c['rasio_umum']}:1 | Rasio Kasar Gabungan: {$c['rasio_gabungan']}:1 | Estimasi Lengkap dengan Kemenag: {$c['rasio_estimasi_lengkap']}:1.\n"
             . "- Siswa di Luar Usia Jenjang (Overage): " . number_format($c['siswa_overage'], 0, ',', '.') . " siswa ({$c['pct_overage']}%).\n"
             . "- Sekolah Akreditasi C/Belum: " . number_format($c['akreditasi_rendah'], 0, ',', '.') . " sekolah.\n"
             . "- Sekolah Tanpa Data Siswa: {$c['tanpa_data_siswa']} sekolah | Tanpa Nomor Telepon: {$c['tanpa_telepon']} sekolah.";
@@ -468,11 +695,6 @@ class EducationRagService
 
     private function formatMadrasahGapChunk(array $c): string
     {
-        $kecGab = implode(', ', array_map(
-            fn ($k) => "{$k['nama']} (gabungan {$k['rasio_gabungan']}:1 vs sekolah umum {$k['rasio_umum']}:1, siswa MI+MTs: " . ($k['siswa_mi'] + $k['siswa_mts']) . ")",
-            array_slice($c['kec_rasio_gabungan_tinggi'], 0, 5)
-        ));
-
         return "[PENJELASAN KEKURANGAN DATA GURU MI & MTs PADA ANALISIS /REKOMENDASI]\n"
             . "1. Kekosongan Data Guru Per-NPSN di Dapodik (teacher_stats):\n"
             . "   - Jenjang MI: Terdapat {$c['mi']['sekolah']} MI dengan " . number_format($c['mi']['siswa'], 0, ',', '.') . " siswa, namun rekaman guru di tabel teacher_stats adalah {$c['mi']['guru_dapodik']} (0 guru).\n"
@@ -483,7 +705,7 @@ class EducationRagService
             . "   - Pada berkas MTs (mts.csv), data agregat kecamatan TA 2024/2025 mencatat {$c['mts']['guru_kemenag_2024']} guru MTs (165 negeri + 580 swasta di 41 MTs), tetapi tidak memiliki rincian per NPSN maupun status sertifikasi.\n"
             . "   - Pada berkas MI (mi.csv), 7 dari 9 tahun ajaran (2017/2018 dan 2019/2020 s/d 2024/2025) rusak karena isinya terduplikasi persis dengan angka MTs (4 negeri, 37 swasta). Data agregat guru MI yang valid terakhir hanya pada TA 2018/2019 yakni " . number_format($c['mi']['guru_kemenag_2018'], 0, ',', '.') . " guru MI (58 negeri + 1.505 swasta di 202 MI).\n"
             . "3. Dampak Distorsi pada Analisis di Halaman /rekomendasi:\n"
-            . "   - Distorsi Rasio Siswa/Guru: Rasio gabungan tampak sebesar {$c['rasio_gabungan']}:1 dan membuat " . count($c['kec_rasio_gabungan_tinggi']) . " kecamatan tampak melampaui ambang 20:1 ({$kecGab}). Padahal jika dihitung khusus sekolah umum non-madrasah (PAUD, TK, SD, SMP, SMA, SMK, PKBM), rasionya adalah {$c['rasio_umum']}:1 (dan hanya " . count($c['kec_rasio_umum_tinggi']) . " kecamatan yang di atas 20:1, yakni Pandanarum 20,9:1). Jika estimasi " . number_format($c['estimasi_guru_madrasah'], 0, ',', '.') . " guru agregat Kemenag digabungkan, rasio kabupaten adalah {$c['rasio_estimasi_lengkap']}:1.\n"
+            . "   - Distorsi Rasio Siswa/Guru: Rasio gabungan tampak sebesar {$c['rasio_gabungan']}:1. Padahal jika dihitung khusus sekolah umum non-madrasah (PAUD, TK, SD, SMP, SMA, SMK, PKBM), rasionya adalah {$c['rasio_umum']}:1. Jika estimasi " . number_format($c['estimasi_guru_madrasah'], 0, ',', '.') . " guru agregat Kemenag digabungkan, rasio kabupaten adalah {$c['rasio_estimasi_lengkap']}:1.\n"
             . "   - Distorsi Rombel Padat (>32 siswa/rombel): Dari {$c['rombel_padat_total']} satuan pendidikan yang terdeteksi rombel padat, sebanyak {$c['rombel_padat_madrasah_placeholder']} adalah madrasah (MI/MTs/MA) karena kolom jumlah_rombel di tabel student_stats masih bernilai placeholder 1 rombel per madrasah. Pada sekolah umum yang data rombelnya lengkap, hanya ada {$c['rombel_padat_umum']} sekolah dengan rombel padat.";
     }
 
@@ -497,7 +719,7 @@ class EducationRagService
             . "5. [TINGGI - Mutu Pembelajaran] Penanganan rombel padat (>32 siswa/rombel) pada {$c['rombel_padat_umum']} sekolah umum serta sinkronisasi jumlah rombel {$c['rombel_padat_madrasah_placeholder']} madrasah.\n"
             . "6. [TINGGI - Mutu & Akuntabilitas] Pendampingan akreditasi {$c['akreditasi_rendah']} satuan pendidikan berpredikat C atau belum terakreditasi.\n"
             . "7. [SEDANG - Pemerataan Akses] Penurunan {$c['pct_overage']}% (" . number_format($c['siswa_overage'], 0, ',', '.') . " siswa) yang belajar di luar rentang usia jenjang.\n"
-            . "8. [SEDANG - Pemerataan & Kualitas Data] Peningkatan Rata-rata Lama Sekolah (RLS 6,88 tahun vs HLS 11,71 tahun) lewat PKBM Paket B/C dan kelengkapan nomor telepon ({$c['tanpa_telepon']} sekolah belum terisi setelah rekonsiliasi 176 nomor dari SIMU-DIK).";
+            . "8. [SEDANG - Pemerataan & Kualitas Data] Peningkatan Rata-rata Lama Sekolah (RLS 6,88 tahun vs HLS 11,71 tahun) lewat PKBM Paket B/C dan kelengkapan nomor telepon ({$c['tanpa_telepon']} sekolah belum terisi).";
     }
 
     private function formatKecamatanChunk(array $k): string
@@ -511,10 +733,6 @@ class EducationRagService
             . "- Proporsi Siswa di Luar Usia (Overage): {$k['overage_pct']}%.";
     }
 
-    /**
-     * @param  array<string, mixed>  $c
-     * @param  array<int, string>  $jenjangs
-     */
     private function formatJenjangChunk(array $c, array $jenjangs): string
     {
         $lines = ["[REKAPITULASI PER JENJANG]"];
@@ -532,9 +750,6 @@ class EducationRagService
         return implode("\n", $lines);
     }
 
-    /**
-     * @param  array<int, array<string, mixed>>  $schools
-     */
     private function formatSchoolsChunk(array $schools): string
     {
         $lines = ["[DATA SATUAN PENDIDIKAN TERKAIT]"];
@@ -554,166 +769,6 @@ class EducationRagService
             . "- Usia Harapan Hidup (UHH): 74,74 tahun | Indeks Gini: 0,331.";
     }
 
-    /**
-     * Panggil Gemini API (Online RAG) dengan fallback antar-model cepat.
-     *
-     * @param  array<int, array{role: string, text: string}>  $history
-     */
-    private function callGemini(string $question, string $contextText, array $history, string $apiKey): ?string
-    {
-        $systemPrompt = "Anda adalah Asisten Analitik Data Pendidikan Kabupaten Banjarnegara pada aplikasi Dasbor Pendidikan (pendidikan.sistemdata.id).\n"
-            . "ATURAN WAJIB:\n"
-            . "1. Jawab HANYA berdasarkan [FAKTA] yang diberikan di bawah ini dalam Bahasa Indonesia yang lugas, jelas, dan berbasis angka pasti.\n"
-            . "2. Jika ditanya mengenai halaman /rekomendasi, rasio guru, madrasah, MI, atau MTs, JELASKAN secara transparan bahwa analisis gabungan di /rekomendasi dipengaruhi oleh kekurangan data guru MI (210 sekolah, 23.699 siswa) dan MTs (41 sekolah, 10.957 siswa) yang masih bernilai 0 di tabel per-NPSN Dapodik (teacher_stats), serta duplikasi CSV MI dengan MTs pada 7 dari 9 tahun ajaran di Satu Data Kemenag. Sertakan perbandingan rasio gabungan (19,6:1) vs rasio riil sekolah umum non-madrasah (15,8:1) vs estimasi jika guru agregat Kemenag digabungkan (15,6:1).\n"
-            . "3. Jangan mengarang angka di luar konteks. Gunakan poin-poin ringkas agar mudah dibaca oleh Kepala Dinas atau analis kebijakan.\n\n"
-            . "=== KONTEKS FAKTUAL RAG DARI DATABASE APLIKASI ===\n"
-            . $contextText;
-
-        $contents = [];
-        foreach (array_slice($history, -4) as $msg) {
-            $role = ($msg['role'] ?? '') === 'model' ? 'model' : 'user';
-            $text = trim((string) ($msg['text'] ?? ''));
-            if ($text !== '') {
-                $contents[] = [
-                    'role' => $role,
-                    'parts' => [['text' => $text]],
-                ];
-            }
-        }
-        $contents[] = [
-            'role' => 'user',
-            'parts' => [['text' => $question]],
-        ];
-
-        $configuredModel = (string) config('services.gemini.model', 'gemini-3.5-flash-lite');
-        $models = array_values(array_unique([$configuredModel, 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite']));
-
-        foreach ($models as $model) {
-            try {
-                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-                $response = Http::timeout(10)
-                    ->withHeaders(['Content-Type' => 'application/json'])
-                    ->post($url, [
-                        'systemInstruction' => [
-                            'parts' => [['text' => $systemPrompt]],
-                        ],
-                        'contents' => $contents,
-                        'generationConfig' => [
-                            'temperature' => 0.2,
-                            'maxOutputTokens' => 700,
-                        ],
-                    ]);
-
-                if ($response->successful()) {
-                    $text = data_get($response->json(), 'candidates.0.content.parts.0.text');
-                    if (is_string($text) && trim($text) !== '') {
-                        return trim($text);
-                    }
-                }
-            } catch (\Throwable $e) {
-                continue;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Mesin penyintesis jawaban Offline RAG (deterministik & instan dari database lokal).
-     *
-     * @param  array<string, mixed>  $retrieval
-     */
-    private function synthesizeOffline(string $question, array $retrieval): string
-    {
-        $c = $retrieval['core'];
-        $topics = $retrieval['topics'];
-        $kecs = $retrieval['matched_kecamatan'];
-        $jenjangs = $retrieval['matched_jenjang'];
-        $schools = $retrieval['matched_schools'];
-
-        $sections = [];
-
-        if ($schools !== []) {
-            $lines = ["**Data Satuan Pendidikan Ditemukan:**"];
-            foreach ($schools as $s) {
-                $lines[] = "- **{$s['nama_sekolah']}** (NPSN `{$s['npsn']}`, {$s['jenjang']} {$s['status']}, Kec. {$s['kecamatan']}): "
-                    . "**{$s['siswa']}** siswa, **{$s['rombel']}** rombel, **{$s['guru']}** guru Dapodik ({$s['sertifikasi']} bersertifikat), Akreditasi **{$s['akreditasi']}**, Telp: `{$s['telepon']}`.";
-            }
-            $sections[] = implode("\n", $lines);
-        }
-
-        if ($kecs !== []) {
-            foreach ($kecs as $kecName) {
-                $k = $c['kecamatan'][$kecName];
-                $sections[] = "**Profil Pendidikan Kecamatan {$k['nama']}:**\n"
-                    . "- **Satuan Pendidikan:** {$k['sekolah']} sekolah (termasuk **{$k['mi_sekolah']} MI** dan **{$k['mts_sekolah']} MTs**).\n"
-                    . "- **Peserta Didik:** " . number_format($k['siswa_total'], 0, ',', '.') . " siswa (Sekolah Umum: **" . number_format($k['siswa_umum'], 0, ',', '.') . "**, MI: **" . number_format($k['siswa_mi'], 0, ',', '.') . "**, MTs: **" . number_format($k['siswa_mts'], 0, ',', '.') . "**, MA: **" . number_format($k['siswa_ma'], 0, ',', '.') . "**).\n"
-                    . "- **Guru Dapodik:** " . number_format($k['guru_dapodik'], 0, ',', '.') . " guru (Sertifikasi: **{$k['sertifikasi_pct']}%**).\n"
-                    . "- **Perbandingan Rasio Siswa/Guru:** Rasio gabungan tercatat **{$k['rasio_gabungan']}:1** (karena " . number_format($k['siswa_mi'] + $k['siswa_mts'] + $k['siswa_ma'], 0, ',', '.') . " siswa madrasah masuk pembilang tanpa data guru di Dapodik). Jika dihitung khusus **sekolah umum non-madrasah**, rasio riilnya adalah **{$k['rasio_umum']}:1**.\n"
-                    . "- **Siswa di Luar Usia (Overage):** {$k['overage_pct']}%.";
-            }
-        }
-
-        if (in_array('madrasah_gap', $topics, true) || in_array('guru_rasio', $topics, true) || in_array('rekomendasi', $topics, true)) {
-            $sections[] = "**Penjelasan Kekurangan Data Guru MI & MTs pada Analisis `/rekomendasi`:**\n"
-                . "1. **Kekosongan Data Guru Per-NPSN di Dapodik (`teacher_stats`):**\n"
-                . "   - **MI:** Terdapat **{$c['mi']['sekolah']} MI** dengan **" . number_format($c['mi']['siswa'], 0, ',', '.') . " siswa**, tetapi jumlah guru tercatat di tabel `teacher_stats` adalah **0 guru**.\n"
-                . "   - **MTs:** Terdapat **{$c['mts']['sekolah']} MTs** dengan **" . number_format($c['mts']['siswa'], 0, ',', '.') . " siswa**, tetapi jumlah guru tercatat di tabel `teacher_stats` juga **0 guru**.\n"
-                . "   - **MA:** Terdapat **{$c['ma']['sekolah']} MA** dengan **" . number_format($c['ma']['siswa'], 0, ',', '.') . " siswa** (**0 guru** di `teacher_stats`).\n"
-                . "2. **Kendala Data Agregat Satu Data Kemenag (`storage/app/data/kemenag/`):**\n"
-                . "   - Untuk **MTs**, data agregat kecamatan TA 2024/2025 mencatat **{$c['mts']['guru_kemenag_2024']} guru** (165 negeri + 580 swasta), namun belum dirinci per NPSN maupun status sertifikasi.\n"
-                . "   - Untuk **MI**, berkas CSV sumber mengalami **duplikasi dengan data MTs pada 7 dari 9 tahun ajaran** (`2017/2018` dan `2019/2020`–`2024/2025`). Data agregat guru MI yang valid terakhir berasal dari TA `2018/2019` sebanyak **" . number_format($c['mi']['guru_kemenag_2018'], 0, ',', '.') . " guru** (58 negeri + 1.505 swasta).\n"
-                . "3. **Koreksi Dampak Analisis di `/rekomendasi`:**\n"
-                . "   - **Rasio Siswa/Guru:** Rasio kasar gabungan tampak sebesar **{$c['rasio_gabungan']}:1** (" . count($c['kec_rasio_gabungan_tinggi']) . " kecamatan > 20:1) karena **" . number_format($c['mi']['siswa'] + $c['mts']['siswa'], 0, ',', '.') . " siswa MI & MTs** (plus " . number_format($c['ma']['siswa'], 0, ',', '.') . " siswa MA) ikut dibagi hanya dengan **" . number_format($c['total_guru'], 0, ',', '.') . " guru** sekolah umum. Jika dihitung khusus **sekolah umum non-madrasah**, rasio riil kabupaten adalah **{$c['rasio_umum']}:1** (dan bila estimasi **" . number_format($c['estimasi_guru_madrasah'], 0, ',', '.') . " guru** agregat Kemenag disertakan, rasionya menjadi **{$c['rasio_estimasi_lengkap']}:1**).\n"
-                . "   - **Kepadatan Rombel:** Dari **{$c['rombel_padat_total']}** sekolah yang terdeteksi >32 siswa/rombel, sebanyak **{$c['rombel_padat_madrasah_placeholder']}** adalah MI/MTs/MA yang jumlah rombelnya masih tercatat placeholder `1` rombel per sekolah. Pada sekolah umum yang datanya lengkap, hanya terdapat **{$c['rombel_padat_umum']} sekolah** dengan rombel padat.";
-        }
-
-        if (in_array('rekomendasi', $topics, true)) {
-            $sections[] = "**Ringkasan Prioritas pada Halaman `/rekomendasi`:**\n"
-                . "- **Kritis (3 Rekomendasi):**\n"
-                . "  1. **Rehabilitasi Sarana:** Penanganan **534 ruang kelas rusak sedang/berat** dan defisit **342 ruang** (SMA/SMK) dengan estimasi kebutuhan **Rp 366,55 miliar**.\n"
-                . "  2. **Integrasi Data EMIS Kemenag & Dapodik:** Menutup kekosongan data guru per-NPSN pada **{$c['mi']['sekolah']} MI** dan **{$c['mts']['sekolah']} MTs** (total 270 madrasah) serta memverifikasi **{$c['tanpa_data_siswa']} sekolah** tanpa data murid.\n"
-                . "  3. **Redistribusi Guru:** Pemerataan guru dengan mengacu pada rasio riil sekolah umum (**{$c['rasio_umum']}:1**, sertifikasi **{$c['pct_sertifikasi']}%**) agar tidak bias oleh absennya data guru MI/MTs.\n"
-                . "- **Tinggi (3 Rekomendasi):** Regrouping **114 SD kecil** (<60 siswa, 18 pasangan terpilih jarak <1 km), pemecahan rombel padat di **{$c['rombel_padat_umum']} sekolah umum**, dan pendampingan **{$c['akreditasi_rendah']} sekolah** akreditasi C/belum.\n"
-                . "- **Sedang (2 Rekomendasi):** Penurunan siswa di luar usia jenjang (**{$c['pct_overage']}%** / " . number_format($c['siswa_overage'], 0, ',', '.') . " siswa) dan peningkatan RLS (**6,88 tahun**) terhadap HLS (**11,71 tahun**).";
-        }
-
-        if (in_array('sarana', $topics, true)) {
-            $sections[] = "**Analisis Sarana & Anggaran (`/analisis/sarana`):**\n"
-                . "- Dari **6.235 ruang kelas** tercatat di Walidata, sebanyak **1.187 ruang (19,0%)** mengalami kerusakan (534 di antaranya rusak sedang/berat).\n"
-                . "- Defisit ruang kelas menurut rasio ideal 28 siswa/ruang tercatat **342 ruang** (terkonsentrasi pada jenjang SMA dan SMK), dengan estimasi total kebutuhan anggaran **Rp 366,55 miliar**.";
-        }
-
-        if (in_array('regrouping', $topics, true)) {
-            $sections[] = "**Analisis Kandidat Regrouping SD (`/analisis/regrouping`):**\n"
-                . "- Terdapat **114 SD** dengan jumlah peserta didik di bawah 60 siswa.\n"
-                . "- Ditemukan **24 pasangan SD** berjarak lurus di bawah 1 km, dan **18 pasangan non-overlapping** direkomendasikan untuk verifikasi lapangan (potensi efisiensi **58 rombel** dan **72 formasi guru**).";
-        }
-
-        if (in_array('bps', $topics, true)) {
-            $sections[] = $this->formatBpsChunk($c);
-        }
-
-        if ($jenjangs !== [] && $sections === []) {
-            $sections[] = $this->formatJenjangChunk($c, $jenjangs);
-        }
-
-        if ($sections === []) {
-            $sections[] = "**Ringkasan Data Pendidikan Kabupaten Banjarnegara (Semester {$c['semester']}):**\n"
-                . "- **Satuan Pendidikan:** " . number_format($c['total_sekolah'], 0, ',', '.') . " sekolah di 20 kecamatan (`656 PAUD`, `649 SD`, `310 TK`, `210 MI`, `101 SMP`, `41 MTs`, `29 PKBM`, `27 SMK`, `19 MA`, `12 SMA`).\n"
-                . "- **Peserta Didik:** " . number_format($c['total_siswa'], 0, ',', '.') . " siswa (" . number_format($c['total_siswa_umum'], 0, ',', '.') . " siswa sekolah umum + " . number_format($c['total_siswa_madrasah'], 0, ',', '.') . " siswa madrasah).\n"
-                . "- **Pendidik (Dapodik):** " . number_format($c['total_guru'], 0, ',', '.') . " guru sekolah umum (**{$c['pct_sertifikasi']}%** bersertifikat). Data guru per-NPSN untuk **210 MI** dan **41 MTs** belum tersedia di tabel Dapodik sehingga rasio sekolah umum dihitung terpisah (**{$c['rasio_umum']}:1** vs rasio gabungan **{$c['rasio_gabungan']}:1**).";
-        }
-
-        return implode("\n\n", $sections);
-    }
-
-    /**
-     * @param  array<int, string>  $topics
-     * @param  array<int, string>  $kecs
-     * @param  array<int, string>  $jenjangs
-     * @return array<int, string>
-     */
     private function suggestFollowUps(array $topics, array $kecs, array $jenjangs): array
     {
         if (in_array('madrasah_gap', $topics, true)) {

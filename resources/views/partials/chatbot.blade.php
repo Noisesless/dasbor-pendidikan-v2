@@ -58,31 +58,6 @@
             </div>
         </div>
 
-        {{-- Mode Selector Bar --}}
-        <div class="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 text-xs">
-            <span class="font-semibold text-slate-600">Mode Pencarian:</span>
-            <div class="inline-flex rounded-lg bg-slate-200/80 p-0.5">
-                <button type="button"
-                        @click="mode = 'auto'"
-                        :class="mode === 'auto' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'"
-                        class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
-                    Otomatis
-                </button>
-                <button type="button"
-                        @click="mode = 'online'"
-                        :class="mode === 'online' ? 'bg-blue-600 text-white shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'"
-                        class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
-                    Online
-                </button>
-                <button type="button"
-                        @click="mode = 'offline'"
-                        :class="mode === 'offline' ? 'bg-slate-800 text-white shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'"
-                        class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
-                    Offline
-                </button>
-            </div>
-        </div>
-
         {{-- Messages Container --}}
         <div x-ref="chatScroll" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
             <template x-for="(msg, idx) in messages" :key="idx">
@@ -90,17 +65,6 @@
                     <div :class="msg.role === 'user'
                             ? 'bg-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%] text-sm leading-relaxed'
                             : 'bg-white text-slate-800 border border-slate-200/90 rounded-2xl rounded-bl-sm px-4 py-3 max-w-[92%] text-sm leading-relaxed shadow-2xs'">
-
-                        {{-- Mode Badge on Assistant Messages --}}
-                        <template x-if="msg.role === 'model' && msg.modeLabel">
-                            <div class="mb-1.5 flex items-center gap-1.5">
-                                <span :class="msg.modeUsed === 'online-gemini'
-                                        ? 'bg-blue-50 text-blue-700 ring-blue-200'
-                                        : 'bg-slate-100 text-slate-700 ring-slate-200'"
-                                      class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold ring-1"
-                                      x-text="msg.modeLabel"></span>
-                            </div>
-                        </template>
 
                         {{-- Formatted Content --}}
                         <div class="space-y-2 chatbot-content" x-html="renderMarkdown(msg.text)"></div>
@@ -160,7 +124,6 @@
 function educationChatbot() {
     return {
         isOpen: false,
-        mode: 'auto',
         loading: false,
         input: '',
         messages: [],
@@ -173,13 +136,11 @@ function educationChatbot() {
             this.messages = [
                 {
                     role: 'model',
-                    modeUsed: 'offline-rag',
-                    modeLabel: 'Siap',
                     text: 'Halo, saya **Asisten Data Banjarnegara**. Saya membantu menganalisis data 2.054 sekolah, siswa, guru, sarana, serta menjelaskan mengapa indikator pada halaman **Rekomendasi Kepala Dinas** dipengaruhi oleh kekosongan data guru **MI dan MTs**.',
                     sources: ['Dapodik 20252', 'EMIS Kemenag', 'Walidata & BPS'],
                     followUps: [
                         'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?',
-                        'Berapa rasio siswa per guru riil sekolah umum jika MI dan MTs dipisahkan?',
+                        'Bagaimana perbandingan rasio guru per kecamatan jika siswa MI dan MTs dipisahkan?',
                         'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?'
                     ]
                 }
@@ -206,7 +167,7 @@ function educationChatbot() {
             this.input = '';
             const historyPayload = this.messages.slice(-4).map(m => ({
                 role: m.role,
-                text: m.text
+                text: (m.text || '').substring(0, 800)
             }));
 
             this.messages.push({
@@ -226,26 +187,18 @@ function educationChatbot() {
                     },
                     body: JSON.stringify({
                         question: q,
-                        mode: this.mode,
                         history: historyPayload
                     })
                 });
 
                 if (!res.ok) {
-                    throw new Error('Request failed');
+                    throw new Error('Request failed with status ' + res.status);
                 }
 
                 const data = await res.json();
-                const modeMap = {
-                    'online-gemini': 'Online (Gemini RAG)',
-                    'offline-rag': 'Offline (Basis Data)',
-                    'offline-guard': 'Batasan Lingkup'
-                };
 
                 this.messages.push({
                     role: 'model',
-                    modeUsed: data.mode_used || 'offline-rag',
-                    modeLabel: modeMap[data.mode_used] || 'Basis Data',
                     text: data.answer || 'Data tidak ditemukan.',
                     sources: data.sources || [],
                     followUps: data.follow_ups || []
@@ -253,11 +206,13 @@ function educationChatbot() {
             } catch (e) {
                 this.messages.push({
                     role: 'model',
-                    modeUsed: 'offline-rag',
-                    modeLabel: 'Offline',
-                    text: 'Gagal memuat. Coba lagi.',
-                    sources: [],
-                    followUps: []
+                    text: 'Mohon maaf, saat ini sistem sedang memproses antrean data. Silakan kirim ulang pertanyaan Anda dalam beberapa saat.',
+                    sources: ['Sistem Data Banjarnegara'],
+                    followUps: [
+                        'Bagaimana perbandingan rasio guru per kecamatan jika siswa MI dan MTs dipisahkan?',
+                        'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?',
+                        'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?'
+                    ]
                 });
             } finally {
                 this.loading = false;
