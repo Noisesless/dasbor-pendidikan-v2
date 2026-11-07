@@ -8,6 +8,7 @@ use App\Http\Controllers\AdvancedAnalysisController;
 use App\Http\Controllers\GuruController;
 use App\Http\Controllers\InfrastrukturController;
 use App\Http\Controllers\PetaController;
+use App\Http\Controllers\RekomendasiController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -21,6 +22,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/rekomendasi', [RekomendasiController::class, 'index'])->name('rekomendasi');
     Route::get('/demografi', [DemografiController::class, 'index'])->name('demografi');
     Route::get('/infrastruktur', [InfrastrukturController::class, 'index'])->name('infrastruktur');
     Route::get('/guru', [GuruController::class, 'index'])->name('guru');

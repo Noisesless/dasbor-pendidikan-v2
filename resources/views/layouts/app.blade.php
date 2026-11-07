@@ -85,6 +85,13 @@
                         </svg>
                         <span>Dashboard</span>
                     </a>
+                    <a href="{{ route('rekomendasi') }}"
+                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition {{ request()->routeIs('rekomendasi') ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-100/80 shadow-xs' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 {{ request()->routeIs('rekomendasi') ? 'text-blue-600' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                        <span>Rekomendasi</span>
+                    </a>
                 </div>
             </div>
 

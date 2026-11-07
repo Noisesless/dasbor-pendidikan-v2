@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
  */
 class AdvancedAnalysisController extends Controller
 {
-    private const BASELINE_SEMESTER = '20252';
+    protected const BASELINE_SEMESTER = '20252';
 
     // =====================================================================
     // 1. Kualitas & Kepatuhan Data
@@ -228,7 +228,23 @@ class AdvancedAnalysisController extends Controller
         ];
         $targetRombel = max(20, (float) $request->query('rasio', 28));
 
-        $walidata = $this->walidataRows();
+        $hasil = $this->saranaComputation($unit, $targetRombel);
+
+        return view('dashboard.sarana', array_merge($hasil, [
+            'unit' => $unit,
+            'targetRombel' => $targetRombel,
+        ]));
+    }
+
+    /**
+     * Perhitungan backlog ruang kelas & estimasi biaya.
+     * Dipakai bersama oleh halaman Sarana dan halaman Rekomendasi.
+     *
+     * @param  array{ringan: float, sedang: float, berat: float, baru: float}  $unit
+     * @return array<string, mixed>
+     */
+    protected function saranaComputation(array $unit, float $targetRombel): array
+    {        $walidata = $this->walidataRows();
 
         $defs = [
             'SD' => [
@@ -319,16 +335,15 @@ class AdvancedAnalysisController extends Controller
 
         $totalBiaya = array_sum($biaya);
 
-        return view('dashboard.sarana', [
+        return [
             'sarana' => array_values($sarana),
-            'unit' => $unit,
-            'targetRombel' => $targetRombel,
             'biaya' => $biaya,
             'totalBiaya' => $totalBiaya,
             'trendLabels' => $trendLabels,
             'tren' => $tren,
             'semester' => self::BASELINE_SEMESTER,
-        ]);
+            'targetRombel' => $targetRombel,
+        ];
     }
 
     // =====================================================================
@@ -340,6 +355,17 @@ class AdvancedAnalysisController extends Controller
         $radius = min(5.0, max(0.3, $radius));
         $jenjang = in_array($request->query('jenjang'), ['SD', 'SMP'], true) ? $request->query('jenjang') : 'SD';
 
+        return view('dashboard.regrouping', $this->regroupingComputation($jenjang, $radius));
+    }
+
+    /**
+     * Pencarian pasangan sekolah berdekatan.
+     * Dipakai bersama oleh halaman Regrouping dan halaman Rekomendasi.
+     *
+     * @return array<string, mixed>
+     */
+    protected function regroupingComputation(string $jenjang, float $radius): array
+    {
         $schools = DB::table('schools')->where('jenjang', $jenjang)
             ->whereNotNull('latitude')->whereNotNull('longitude')
             ->where('latitude', '!=', 0)->where('longitude', '!=', 0)
@@ -472,7 +498,16 @@ class AdvancedAnalysisController extends Controller
 
         $sekolahKecil = $schools->filter(fn ($s) => (int) ($siswa[$s->npsn]->total_siswa ?? 0) > 0 && (int) $siswa[$s->npsn]->total_siswa < 60)->count();
 
-        return view('dashboard.regrouping', [
+        // Sebaran pasangan per kecamatan — dipakai halaman Rekomendasi untuk
+        // menentukan wilayah verifikasi lapangan tahap pertama.
+        $pairsPerKecamatan = [];
+        foreach ($pairs as $p) {
+            $kec = $p['a']['kecamatan'];
+            $pairsPerKecamatan[$kec] = ($pairsPerKecamatan[$kec] ?? 0) + 1;
+        }
+        arsort($pairsPerKecamatan);
+
+        return [
             'pairs' => array_slice($pairs, 0, 40),
             'totalPairs' => count($pairs),
             'radius' => $radius,
@@ -484,9 +519,10 @@ class AdvancedAnalysisController extends Controller
             'pasanganTerpilih' => $pasanganTerpilih,
             'sekolahKecil' => $sekolahKecil,
             'identik' => $identik,
+            'pairsPerKecamatan' => array_slice($pairsPerKecamatan, 0, 5, true),
             'totalSekolah' => $schools->count(),
             'semester' => self::BASELINE_SEMESTER,
-        ]);
+        ];
     }
 
     // =====================================================================
@@ -496,7 +532,7 @@ class AdvancedAnalysisController extends Controller
      * Deteksi nama sekolah yang jelas bukan milik jenjangnya
      * (mis. STIMIK / SLB / LKP dilabeli SD pada data sumber).
      */
-    private function jenjangTidakSesuai(string $jenjang, string $nama): bool
+    protected function jenjangTidakSesuai(string $jenjang, string $nama): bool
     {
         $nama = strtoupper(preg_replace('/\s+/', ' ', trim($nama)) ?? '');
         if ($nama === '') {
@@ -532,7 +568,7 @@ class AdvancedAnalysisController extends Controller
     }
 
     /** @return array<int, array<string, mixed>> */
-    private function walidataRows(): array
+    protected function walidataRows(): array
     {
         static $rows = null;
         if ($rows !== null) {
@@ -548,17 +584,17 @@ class AdvancedAnalysisController extends Controller
     }
 
     /** @return string[] */
-    private function walidataYears(): array
+    protected function walidataYears(): array
     {
         return ['2020', '2021', '2022', '2023', '2024'];
     }
 
-    private function walidataValue(array $rows, string $pattern, string $year = '2023'): float
+    protected function walidataValue(array $rows, string $pattern, string $year = '2023'): float
     {
         return $this->walidataValueByYear($rows, $pattern, $year);
     }
 
-    private function walidataValueByYear(array $rows, string $pattern, string $year): float
+    protected function walidataValueByYear(array $rows, string $pattern, string $year): float
     {
         foreach ($rows as $r) {
             if (preg_match($pattern, trim((string) $r['uraian']))) {
