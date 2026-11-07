@@ -71,18 +71,35 @@
 {{-- Map + Legend --}}
 <div class="mb-6 grid grid-cols-1 gap-6">
     <div class="rounded-2xl bg-white p-5 shadow-xs ring-1 ring-slate-200">
-        <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h3 class="text-base font-semibold text-slate-900">Peta Interaktif</h3>
-                <p class="text-sm text-slate-500">Choropleth kecamatan berdasarkan jumlah sekolah dan titik lokasi sekolah</p>
+                <p id="mapModeDesc" class="text-sm text-slate-500">Choropleth kecamatan berdasarkan jumlah sekolah dan titik lokasi sekolah</p>
+            </div>
+            <div class="inline-flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="Mode peta">
+                <button type="button" data-map-mode="choropleth" aria-pressed="true"
+                        class="map-mode-btn rounded-md px-3 py-1.5 text-sm font-semibold transition bg-white text-slate-900 shadow-sm">
+                    Choropleth
+                </button>
+                <button type="button" data-map-mode="heatmap" aria-pressed="false"
+                        class="map-mode-btn rounded-md px-3 py-1.5 text-sm font-semibold transition text-slate-500 hover:text-slate-700">
+                    Heatmap
+                </button>
             </div>
         </div>
         <div id="sekolahMap" class="h-[640px] w-full overflow-hidden rounded-xl border border-slate-200"></div>
-        <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
+        <div id="legendChoropleth" class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
             <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-full bg-[#2563eb]"></span> Negeri</span>
             <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-full bg-[#ef4444]"></span> Swasta</span>
             <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-6 rounded border border-slate-300 bg-[#1e40af]"></span> Banyak Sekolah</span>
             <span class="inline-flex items-center gap-1.5"><span class="inline-block h-3 w-6 rounded border border-slate-300 bg-[#bfdbfe]"></span> Sedikit Sekolah</span>
+        </div>
+        <div id="legendHeatmap" class="mt-3 hidden flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
+            <span class="inline-flex items-center gap-1.5">
+                <span class="inline-block h-3 w-24 rounded" style="background:linear-gradient(90deg,#1d4ed8,#22d3ee,#22c55e,#facc15,#ef4444)"></span>
+                Kepadatan rendah &rarr; tinggi
+            </span>
+            <span>Intensitas dihitung dari jumlah siswa tiap sekolah</span>
         </div>
     </div>
 </div>
@@ -137,6 +154,7 @@
 
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const sekolah = @json($sekolah);
@@ -174,9 +192,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const maxSekolah = Math.max.apply(null, kecamatanStats.map(function (k) { return k.sekolah; }).concat([0]));
 
+    // Layer groups
+    const markerLayer = L.layerGroup();
+    let choroplethLayer = null;
+
     // Choropleth layer
     if (geojson && geojson.features) {
-        L.geoJSON(geojson, {
+        choroplethLayer = L.geoJSON(geojson, {
             style: function (feature) {
                 const name = feature.properties.WADMKC;
                 const stat = statsMap[name];
@@ -203,8 +225,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Circle markers for each school
-    sekolah.forEach(function (s) {
-        if (!s.latitude || !s.longitude) return;
+    const validSchools = sekolah.filter(function (s) {
+        return s.latitude && s.longitude && parseFloat(s.latitude) !== 0;
+    });
+
+    validSchools.forEach(function (s) {
         const color = s.status === 'Swasta' ? '#ef4444' : '#2563eb';
         L.circleMarker([parseFloat(s.latitude), parseFloat(s.longitude)], {
             radius: 5,
@@ -214,8 +239,79 @@ document.addEventListener('DOMContentLoaded', function () {
             fillOpacity: 0.9
         }).bindPopup(
             '<div style="font-family:sans-serif"><strong>' + s.nama_sekolah + '</strong><br>' +
-            s.jenjang + ' - ' + s.status + '<br>' + s.kecamatan + '</div>'
-        ).addTo(map);
+            s.jenjang + ' - ' + s.status + '<br>' + s.kecamatan +
+            (s.siswa ? '<br>Siswa: ' + Number(s.siswa).toLocaleString('id-ID') : '') + '</div>'
+        ).addTo(markerLayer);
+    });
+    markerLayer.addTo(map);
+
+    // Heatmap layer: intensitas = jumlah siswa tiap sekolah
+    const maxSiswaSekolah = Math.max.apply(null, validSchools.map(function (s) {
+        return s.siswa || 0;
+    }).concat([0]));
+
+    function heatWeight(s) {
+        const v = s.siswa || 0;
+        if (maxSiswaSekolah <= 0) return 0.6;
+        return 0.2 + 0.8 * Math.min(1, v / maxSiswaSekolah);
+    }
+
+    const heatPoints = validSchools.map(function (s) {
+        return [parseFloat(s.latitude), parseFloat(s.longitude), heatWeight(s)];
+    });
+
+    const heatLayer = L.heatLayer(heatPoints, {
+        radius: 28,
+        blur: 20,
+        maxZoom: 15,
+        minOpacity: 0.25,
+        max: 1.0,
+        gradient: { 0.2: '#1d4ed8', 0.4: '#22d3ee', 0.6: '#22c55e', 0.8: '#facc15', 1.0: '#ef4444' }
+    });
+
+    // Mode switching: choropleth <-> heatmap
+    const modeButtons = document.querySelectorAll('.map-mode-btn');
+    const legendChoropleth = document.getElementById('legendChoropleth');
+    const legendHeatmap = document.getElementById('legendHeatmap');
+    const modeDesc = document.getElementById('mapModeDesc');
+
+    const modeDescriptions = {
+        choropleth: 'Choropleth kecamatan berdasarkan jumlah sekolah dan titik lokasi sekolah',
+        heatmap: 'Heatmap kepadatan siswa — makin merah, makin padat jumlah siswa di wilayah tersebut'
+    };
+
+    function setMapMode(mode) {
+        if (map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
+        if (choroplethLayer && map.hasLayer(choroplethLayer)) map.removeLayer(choroplethLayer);
+        if (map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+
+        if (mode === 'heatmap') {
+            heatLayer.addTo(map);
+            legendChoropleth.classList.add('hidden');
+            legendHeatmap.classList.remove('hidden');
+        } else {
+            if (choroplethLayer) choroplethLayer.addTo(map);
+            markerLayer.addTo(map);
+            legendHeatmap.classList.add('hidden');
+            legendChoropleth.classList.remove('hidden');
+        }
+
+        modeDesc.textContent = modeDescriptions[mode];
+
+        modeButtons.forEach(function (btn) {
+            const active = btn.dataset.mapMode === mode;
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            btn.classList.toggle('bg-white', active);
+            btn.classList.toggle('text-slate-900', active);
+            btn.classList.toggle('shadow-sm', active);
+            btn.classList.toggle('text-slate-500', !active);
+        });
+    }
+
+    modeButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            setMapMode(btn.dataset.mapMode);
+        });
     });
 });
 </script>

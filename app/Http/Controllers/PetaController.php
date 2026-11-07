@@ -35,6 +35,20 @@ class PetaController extends Controller
             ->orderBy('nama_sekolah')
             ->get();
 
+        // Bobot heatmap: jumlah siswa per sekolah pada semester terpilih
+        $siswaPerSekolah = StudentStat::where('semester', $semester)
+            ->when($jenjang !== '', fn ($q) => $q->where('jenjang', $jenjang))
+            ->selectRaw('npsn, SUM(total_siswa) as total_siswa')
+            ->groupBy('npsn')
+            ->pluck('total_siswa', 'npsn');
+
+        $sekolah = $sekolah->map(function ($s) use ($siswaPerSekolah) {
+            $row = $s->toArray();
+            $row['siswa'] = (int) ($siswaPerSekolah[$s->npsn] ?? 0);
+
+            return $row;
+        });
+
         // Statistik per kecamatan untuk choropleth
         $siswaKec = StudentStat::where('semester', $semester)
             ->when($kecamatan !== '', fn ($q) => $q->where('kecamatan', $kecamatan))
