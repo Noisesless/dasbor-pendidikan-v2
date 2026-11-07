@@ -19,6 +19,20 @@ class EducationRagService
     private const BASELINE_SEMESTER = '20252';
 
     /**
+     * Dapatkan kode semester aktif mutakhir dari basis data secara dinamis.
+     * Jika di masa depan dilakukan import data semester baru (misal 20261, 20262),
+     * RAG secara otomatis beralih menggunakan data termutakhir.
+     */
+    public function getActiveSemester(): string
+    {
+        try {
+            return (string) (DB::table('student_stats')->max('semester') ?: self::BASELINE_SEMESTER);
+        } catch (\Throwable) {
+            return self::BASELINE_SEMESTER;
+        }
+    }
+
+    /**
      * Model Gemini yang didukung untuk generateContent dengan API Key Google AI Studio.
      * Diuji secara berurutan jika terjadi kegagalan atau kehabisan kuota pada model sebelumnya.
      */
@@ -327,9 +341,111 @@ class EducationRagService
                 . "- **Jenjang & Status:** {$s['jenjang']} ({$s['status']})\n"
                 . "- **Wilayah Kecamatan:** {$s['kecamatan']}\n"
                 . "- **Akreditasi:** **{$s['akreditasi']}**\n"
-                . "- **Peserta Didik:** **{$s['siswa']}** siswa terbagi dalam **{$s['rombel']}** rombongan belajar\n"
+                . "- **Peserta Didik:** **" . number_format($s['siswa'], 0, ',', '.') . "** siswa terbagi dalam **{$s['rombel']}** rombongan belajar\n"
                 . "- **Tenaga Pendidik (Dapodik):** **{$s['guru']}** guru (" . ($s['sertifikasi'] > 0 ? "{$s['sertifikasi']} bersertifikat pendidik" : 'belum ada sertifikasi tercatat') . ")\n"
                 . "- **Kontak Resmi:** `{$s['telepon']}`";
+        }
+
+        $matchedJenjang = $retrieval['matched_jenjang'] ?? [];
+
+        // Skenario 1D: Pertanyaan spesifik jenjang di kecamatan tertentu (contoh: 'berapa banyak sekolah SMP di kecamatan punggelan')
+        if ($kecs !== [] && $matchedJenjang !== []) {
+            $kecName = $kecs[0];
+            $jenjangName = $matchedJenjang[0];
+            $schoolsList = DB::table('schools')
+                ->where('kecamatan', $kecName)
+                ->where('jenjang', $jenjangName)
+                ->get();
+            $schoolCount = $schoolsList->count();
+            $negeriCount = $schoolsList->where('status', 'Negeri')->count();
+            $swastaCount = $schoolsList->where('status', 'Swasta')->count();
+            $npsns = $schoolsList->pluck('npsn')->all();
+
+            $totalSiswaJenjang = (int) DB::table('student_stats')
+                ->where('semester', $c['semester'])
+                ->whereIn('npsn', $npsns)
+                ->sum('total_siswa');
+            $totalGuruJenjang = (int) DB::table('teacher_stats')
+                ->where('semester', $c['semester'])
+                ->whereIn('npsn', $npsns)
+                ->sum('jumlah_guru');
+            $totalRombelJenjang = (int) DB::table('student_stats')
+                ->where('semester', $c['semester'])
+                ->whereIn('npsn', $npsns)
+                ->sum('jumlah_rombel');
+
+            $daftarSekolah = $schoolsList->take(8)->map(fn ($s) => "- **{$s->nama_sekolah}** ({$s->status}, Akreditasi: " . ($s->akreditasi ?: 'Belum') . ", NPSN: `{$s->npsn}`)")->implode("\n");
+
+            return "Berdasarkan basis data analitik Semester {$c['semester']}, berikut data jenjang **{$jenjangName}** di **Kecamatan {$kecName}**:\n\n"
+                . "- **Jumlah Satuan Pendidikan:** **{$schoolCount} sekolah** ({$negeriCount} Negeri, {$swastaCount} Swasta)\n"
+                . "- **Total Peserta Didik:** **" . number_format($totalSiswaJenjang, 0, ',', '.') . " siswa** terbagi dalam **{$totalRombelJenjang} rombel**\n"
+                . "- **Tenaga Pendidik Tercatat:** **" . number_format($totalGuruJenjang, 0, ',', '.') . " guru** (" . ($totalGuruJenjang > 0 ? "rasio " . round($totalSiswaJenjang / $totalGuruJenjang, 1) . ":1" : "pencatatan guru madrasah berada di bawah naungan EMIS Kemenag") . ")\n\n"
+                . ($daftarSekolah !== '' ? "**Daftar Satuan Pendidikan Terdata:**\n" . $daftarSekolah . ($schoolCount > 8 ? "\n- ... dan " . ($schoolCount - 8) . " sekolah lainnya." : '') : '');
+        }
+
+        // Skenario 1E: Pertanyaan spesifik jenjang tingkat kabupaten (contoh: 'berapa jumlah sekolah SD di Banjarnegara')
+        if ($matchedJenjang !== [] && $kecs === []) {
+            $j = $matchedJenjang[0];
+            $st = $c['jenjang_stats'][$j] ?? null;
+            if ($st) {
+                $topKecList = DB::table('schools')
+                    ->where('jenjang', $j)
+                    ->selectRaw('kecamatan, COUNT(*) as jml')
+                    ->groupBy('kecamatan')
+                    ->orderByDesc('jml')
+                    ->limit(5)
+                    ->pluck('jml', 'kecamatan');
+
+                $topKecTxt = [];
+                foreach ($topKecList as $kc => $jm) {
+                    $topKecTxt[] = "**{$kc}** ({$jm} sekolah)";
+                }
+
+                return "Berdasarkan basis data pokok pendidikan Kabupaten Banjarnegara (Semester {$c['semester']}), berikut statistik jenjang **{$j}**:\n\n"
+                    . "- **Total Satuan Pendidikan:** **{$st['sekolah']} sekolah** ({$st['negeri']} Negeri, {$st['swasta']} Swasta)\n"
+                    . "- **Total Peserta Didik:** **" . number_format($st['siswa'], 0, ',', '.') . " siswa** (" . number_format($st['rombel'], 0, ',', '.') . " rombongan belajar)\n"
+                    . "- **Tenaga Pendidik di Dapodik:** **" . number_format($st['guru_dapodik'], 0, ',', '.') . " guru** (" . ($st['rasio'] !== null ? "rasio {$st['rasio']}:1" : "data guru diatur melalui EMIS Kemenag") . ")\n"
+                    . "- **Sebaran Kecamatan Terbanyak:** " . implode(', ', $topKecTxt) . ".\n\n"
+                    . "Ada kecamatan tertentu yang ingin Anda telusuri untuk jenjang {$j} ini?";
+            }
+        }
+
+        // Skenario 1F: Status Akreditasi Satuan Pendidikan
+        if (in_array('akreditasi', $topics, true) || str_contains($qLower, 'akreditasi')) {
+            $akrStats = DB::table('schools')
+                ->selectRaw("COALESCE(NULLIF(akreditasi, ''), 'Belum') as akr, COUNT(*) as jml")
+                ->groupBy('akr')
+                ->orderByDesc('jml')
+                ->pluck('jml', 'akr');
+
+            $aCount = (int) ($akrStats['A'] ?? 0);
+            $bCount = (int) ($akrStats['B'] ?? 0);
+            $cCount = (int) ($akrStats['C'] ?? 0);
+            $belumCount = (int) ($akrStats['Belum'] ?? 0) + (int) ($akrStats['TT'] ?? 0);
+
+            return "Berdasarkan basis data status akreditasi satuan pendidikan di Kabupaten Banjarnegara (total " . number_format($c['total_sekolah'], 0, ',', '.') . " sekolah):\n\n"
+                . "- **Akreditasi A (Unggul):** **" . number_format($aCount, 0, ',', '.') . " sekolah** (" . round($aCount / max(1, $c['total_sekolah']) * 100, 1) . "%)\n"
+                . "- **Akreditasi B (Baik):** **" . number_format($bCount, 0, ',', '.') . " sekolah** (" . round($bCount / max(1, $c['total_sekolah']) * 100, 1) . "%)\n"
+                . "- **Akreditasi C (Cukup):** **" . number_format($cCount, 0, ',', '.') . " sekolah** (" . round($cCount / max(1, $c['total_sekolah']) * 100, 1) . "%)\n"
+                . "- **Belum Terakreditasi / Proses:** **" . number_format($belumCount, 0, ',', '.') . " sekolah** (" . round($belumCount / max(1, $c['total_sekolah']) * 100, 1) . "%)\n\n"
+                . "Pemerintah Kabupaten Banjarnegara mendampingi sekolah-sekolah berpredikat C atau yang belum terakreditasi untuk percepatan pemenuhan standar nasional pendidikan.";
+        }
+
+        // Skenario 1G: Status Kepegawaian Guru (PNS, PPPK, Honorer)
+        if (str_contains($qLower, 'pns') || str_contains($qLower, 'pppk') || str_contains($qLower, 'honor') || str_contains($qLower, 'gty') || str_contains($qLower, 'gtt')) {
+            $pnsCount = (int) DB::table('teacher_stats')->where('semester', $c['semester'])->sum('jumlah_pns');
+            $pppkCount = (int) DB::table('teacher_stats')->where('semester', $c['semester'])->sum('jumlah_pppk');
+            $gtyCount = (int) DB::table('teacher_stats')->where('semester', $c['semester'])->sum('jumlah_gty');
+            $gttCount = (int) DB::table('teacher_stats')->where('semester', $c['semester'])->sum('jumlah_gtt');
+            $honorCount = (int) DB::table('teacher_stats')->where('semester', $c['semester'])->sum('jumlah_honor');
+
+            return "Berdasarkan komposisi status kepegawaian tenaga pendidik di Kabupaten Banjarnegara (Dapodik Semester {$c['semester']}, total " . number_format($c['total_guru'], 0, ',', '.') . " guru):\n\n"
+                . "- **Guru PNS:** **" . number_format($pnsCount, 0, ',', '.') . " orang** (" . round($pnsCount / max(1, $c['total_guru']) * 100, 1) . "%)\n"
+                . "- **Guru PPPK:** **" . number_format($pppkCount, 0, ',', '.') . " orang** (" . round($pppkCount / max(1, $c['total_guru']) * 100, 1) . "%)\n"
+                . "- **Guru Tetap Yayasan (GTY):** **" . number_format($gtyCount, 0, ',', '.') . " orang** (" . round($gtyCount / max(1, $c['total_guru']) * 100, 1) . "%)\n"
+                . "- **Guru Tidak Tetap (GTT):** **" . number_format($gttCount, 0, ',', '.') . " orang** (" . round($gttCount / max(1, $c['total_guru']) * 100, 1) . "%)\n"
+                . "- **Guru Honorer:** **" . number_format($honorCount, 0, ',', '.') . " orang** (" . round($honorCount / max(1, $c['total_guru']) * 100, 1) . "%)\n\n"
+                . "Sebanyak **{$c['pct_sertifikasi']}% (" . number_format($c['total_sertifikasi'], 0, ',', '.') . " guru)** telah tersertifikasi pendidik resmi.";
         }
 
         // Skenario 2: Pertanyaan spesifik tentang perbandingan rasio guru per kecamatan jika MI dan MTs dipisahkan
@@ -430,8 +546,16 @@ class EducationRagService
         }
 
         // Skenario 11: Ringkasan menyeluruh eksekutif
+        $jenjangPills = [];
+        foreach ($c['jenjang_stats'] as $jName => $jData) {
+            if ($jData['sekolah'] > 0) {
+                $jenjangPills[] = "`{$jData['sekolah']} {$jName}`";
+            }
+        }
+        $jenjangPillsTxt = $jenjangPills !== [] ? implode(', ', $jenjangPills) : 'seluruh jenjang';
+
         return "Berdasarkan basis data analitik pendidikan Kabupaten Banjarnegara (Semester {$c['semester']}):\n\n"
-            . "- **Satuan Pendidikan:** Tersebar **" . number_format($c['total_sekolah'], 0, ',', '.') . " sekolah** di 20 kecamatan (`656 PAUD`, `649 SD`, `310 TK`, `210 MI`, `101 SMP`, `41 MTs`, `29 PKBM`, `27 SMK`, `19 MA`, `12 SMA`).\n"
+            . "- **Satuan Pendidikan:** Tersebar **" . number_format($c['total_sekolah'], 0, ',', '.') . " sekolah** di 20 kecamatan ({$jenjangPillsTxt}).\n"
             . "- **Peserta Didik:** Total **" . number_format($c['total_siswa'], 0, ',', '.') . " siswa** (" . number_format($c['total_siswa_umum'], 0, ',', '.') . " di sekolah umum dan " . number_format($c['total_siswa_madrasah'], 0, ',', '.') . " di madrasah).\n"
             . "- **Pendidik & Rasio:** Terdapat **" . number_format($c['total_guru'], 0, ',', '.') . " guru** di Dapodik dengan tingkat sertifikasi **{$c['pct_sertifikasi']}%**. Rasio sekolah umum berada di angka **{$c['rasio_umum']}:1**, sedangkan rasio gabungan berada di angka **{$c['rasio_gabungan']}:1** karena data guru madrasah belum masuk ke Dapodik.\n"
             . "- **Sarana & Prasarana:** Sebanyak **1.187 ruang kelas (19,0%)** memerlukan perbaikan dengan defisit 342 ruang di jenjang menengah.\n\n"
@@ -479,7 +603,7 @@ class EducationRagService
      */
     private function buildCoreFacts(): array
     {
-        $semester = self::BASELINE_SEMESTER;
+        $semester = $this->getActiveSemester();
         $madrasahJenjang = ['MI', 'MTS', 'MA'];
 
         $schoolsByJenjang = DB::table('schools')
@@ -502,9 +626,9 @@ class EducationRagService
         $mtsSiswa = (int) $siswaRows->where('jenjang', 'MTS')->sum('total_siswa');
         $maSiswa = (int) $siswaRows->where('jenjang', 'MA')->sum('total_siswa');
 
-        $miSekolah = (int) ($schoolsByJenjang['MI']->sekolah ?? 210);
-        $mtsSekolah = (int) ($schoolsByJenjang['MTS']->sekolah ?? 41);
-        $maSekolah = (int) ($schoolsByJenjang['MA']->sekolah ?? 19);
+        $miSekolah = (int) ($schoolsByJenjang['MI']->sekolah ?? 0);
+        $mtsSekolah = (int) ($schoolsByJenjang['MTS']->sekolah ?? 0);
+        $maSekolah = (int) ($schoolsByJenjang['MA']->sekolah ?? 0);
 
         $miGuruDapodik = (int) $guruRows->where('jenjang', 'MI')->sum('jumlah_guru');
         $mtsGuruDapodik = (int) $guruRows->where('jenjang', 'MTS')->sum('jumlah_guru');
@@ -799,10 +923,22 @@ class EducationRagService
 
     private function formatBpsChunk(array $c): string
     {
-        return "[INDIKATOR MAKRO BPS KABUPATEN BANJARNEGARA (2024)]\n"
-            . "- Harapan Lama Sekolah (HLS): 11,71 tahun | Rata-rata Lama Sekolah (RLS): 6,88 tahun (selisih 4,83 tahun).\n"
-            . "- Indeks Pembangunan Manusia (IPM): 69,65 | Persentase Penduduk Miskin: 14,71% (138,1 ribu jiwa).\n"
-            . "- Usia Harapan Hidup (UHH): 74,74 tahun | Indeks Gini: 0,331.";
+        $maxYear = (int) (DB::table('regional_indicators')->max('tahun') ?: 2024);
+        $ind = DB::table('regional_indicators')->where('tahun', $maxYear)->pluck('nilai', 'indikator');
+
+        $hls = (float) ($ind['hls'] ?? 11.71);
+        $rls = (float) ($ind['rls'] ?? 6.88);
+        $ipm = (float) ($ind['ipm'] ?? 69.65);
+        $miskinPct = (float) ($ind['miskin_pct'] ?? 14.71);
+        $miskinJiwa = (float) ($ind['miskin_jiwa'] ?? 138.1);
+        $uhh = (float) ($ind['uhh'] ?? 74.74);
+        $gini = (float) ($ind['gini'] ?? 0.331);
+        $selisih = round($hls - $rls, 2);
+
+        return "[INDIKATOR MAKRO BPS KABUPATEN BANJARNEGARA ({$maxYear})]\n"
+            . "- Harapan Lama Sekolah (HLS): {$hls} tahun | Rata-rata Lama Sekolah (RLS): {$rls} tahun (selisih {$selisih} tahun).\n"
+            . "- Indeks Pembangunan Manusia (IPM): {$ipm} | Persentase Penduduk Miskin: {$miskinPct}% ({$miskinJiwa} ribu jiwa).\n"
+            . "- Usia Harapan Hidup (UHH): {$uhh} tahun | Indeks Gini: {$gini}.";
     }
 
     private function suggestFollowUps(array $topics, array $kecs, array $jenjangs): array

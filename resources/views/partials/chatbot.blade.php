@@ -40,15 +40,6 @@
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
                 <button type="button"
-                        @click="showDebug = !showDebug"
-                        :class="showDebug ? 'text-amber-400 bg-slate-800 ring-1 ring-amber-400/50' : 'text-slate-400 hover:text-white hover:bg-slate-800'"
-                        title="Mode Debugging Analitik (Production)"
-                        class="p-1.5 rounded-lg transition cursor-pointer">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                    </svg>
-                </button>
-                <button type="button"
                         @click="resetChat()"
                         title="Bersihkan percakapan"
                         class="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer">
@@ -65,35 +56,6 @@
                     </svg>
                 </button>
             </div>
-        </div>
-
-        {{-- Production Debug Console Bar (Kompak & Ramping) --}}
-        <div x-show="showDebug"
-             x-cloak
-             class="px-3 py-1.5 bg-slate-950 text-slate-200 border-b border-slate-800 text-[10px] font-mono flex items-center justify-between gap-2 shrink-0">
-            <div class="flex items-center gap-2 truncate">
-                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
-                <template x-if="lastDebug">
-                    <span class="truncate text-slate-300">
-                        <span class="text-amber-300 font-bold" x-text="lastDebug.engine || 'online'"></span>
-                        <span class="text-slate-500">|</span>
-                        <span class="text-blue-300" x-text="lastDebug.model || '-'"></span>
-                        <span class="text-slate-500">|</span>
-                        <span class="text-emerald-300" x-text="(lastDebug.duration_ms || 0) + 'ms'"></span>
-                        <span class="text-slate-500">|</span>
-                        <span class="text-sky-300" x-text="(lastDebug.answer_length || 0) + 'c'"></span>
-                    </span>
-                </template>
-                <template x-if="!lastDebug">
-                    <span class="text-amber-400 font-bold">DEBUG AKTIF (PROD)</span>
-                </template>
-            </div>
-            <button type="button"
-                    @click="testPingServer()"
-                    :disabled="pingLoading"
-                    class="px-2 py-0.5 rounded bg-blue-600/80 hover:bg-blue-600 text-white text-[10px] font-sans font-bold transition cursor-pointer shrink-0">
-                <span x-text="pingLoading ? '...' : 'Ping DB'"></span>
-            </button>
         </div>
 
         {{-- Messages Container --}}
@@ -117,14 +79,6 @@
                             </span>
                             <span x-show="msg.time" :class="msg.role === 'user' ? 'text-blue-200' : 'text-slate-400'" class="text-[10px] font-normal" x-text="msg.time"></span>
                         </div>
-
-                        {{-- Formatted Content --}}
-                        <template x-if="showDebug && msg.debug">
-                            <div class="mb-2 px-2 py-1 rounded bg-slate-900 text-amber-300 font-mono text-[10px] border border-slate-800 flex items-center justify-between">
-                                <span x-text="'⚡ ' + (msg.debug.engine || '-') + ' (' + (msg.debug.model || '-') + ')'"></span>
-                                <span x-text="(msg.debug.duration_ms || 0) + 'ms'"></span>
-                            </div>
-                        </template>
 
                         <div class="space-y-2 chatbot-content" x-html="renderMarkdown(msg.text)"></div>
 
@@ -190,10 +144,6 @@ function educationChatbot() {
     return {
         isOpen: false,
         loading: false,
-        showDebug: false,
-        pingLoading: false,
-        pingStatus: null,
-        lastDebug: null,
         input: '',
         messages: [],
 
@@ -216,8 +166,7 @@ function educationChatbot() {
                         'Bagaimana perbandingan rasio guru per kecamatan jika siswa MI dan MTs dipisahkan?',
                         'Apa 3 keputusan kritis untuk Kepala Dinas pada tahun ini?'
                     ],
-                    time: this.formatTime(),
-                    debug: { engine: 'system-init', model: 'local', duration_ms: 0 }
+                    time: this.formatTime()
                 }
             ];
         },
@@ -233,22 +182,6 @@ function educationChatbot() {
             if (this.loading) return;
             this.input = text;
             this.submitQuestion();
-        },
-
-        async testPingServer() {
-            this.pingLoading = true;
-            this.pingStatus = null;
-            try {
-                const res = await fetch('{{ route("chatbot.ping") }}', {
-                    headers: { 'Accept': 'application/json' }
-                });
-                const json = await res.json();
-                this.pingStatus = json;
-            } catch (err) {
-                this.pingStatus = { error: err.message };
-            } finally {
-                this.pingLoading = false;
-            }
         },
 
         async submitQuestion() {
@@ -286,46 +219,24 @@ function educationChatbot() {
                     })
                 });
 
-                const durationMs = Math.round(performance.now() - startTime);
-
                 if (!res.ok) {
                     throw new Error('HTTP ' + res.status + ' (' + res.statusText + ')');
                 }
 
                 const data = await res.json();
-                const debugData = data.debug || {
-                    engine: 'api-response',
-                    model: 'default',
-                    duration_ms: durationMs,
-                    answer_length: (data.answer || '').length
-                };
-                debugData.http_status = '200 OK';
-                debugData.client_ms = durationMs;
-
-                this.lastDebug = debugData;
 
                 this.messages.push({
                     role: 'model',
                     text: data.answer || 'Data analisis tidak ditemukan untuk pertanyaan ini.',
                     sources: data.sources || [],
-                    time: this.formatTime(),
-                    debug: debugData
+                    time: this.formatTime()
                 });
             } catch (e) {
-                const durationMs = Math.round(performance.now() - startTime);
-                this.lastDebug = {
-                    engine: 'client-error',
-                    model: e.message,
-                    http_status: 'FAILED',
-                    duration_ms: durationMs
-                };
-
                 this.messages.push({
                     role: 'model',
-                    text: 'Mohon maaf, saat ini sistem sedang memproses antrean data. Silakan kirim ulang pertanyaan Anda dalam beberapa saat.' + (this.showDebug ? '\n\n`[DEBUG ERROR: ' + e.message + ']`' : ''),
+                    text: 'Mohon maaf, saat ini sistem sedang memproses antrean data. Silakan kirim ulang pertanyaan Anda dalam beberapa saat.',
                     sources: ['Sistem Data Banjarnegara'],
-                    time: this.formatTime(),
-                    debug: this.lastDebug
+                    time: this.formatTime()
                 });
             } finally {
                 this.loading = false;
