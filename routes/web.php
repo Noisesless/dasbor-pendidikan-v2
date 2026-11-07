@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])
+        ->middleware('throttle:login');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])
@@ -29,9 +30,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/guru', [GuruController::class, 'index'])->name('guru');
     Route::get('/peta', [PetaController::class, 'index'])->name('peta');
     Route::post('/chatbot/ask', [ChatbotController::class, 'ask'])
-        ->middleware('throttle:30,1')
+        ->middleware('throttle:chatbot-ask')
         ->name('chatbot.ask');
     Route::get('/chatbot/ping', [ChatbotController::class, 'ping'])
+        ->middleware('throttle:chatbot-ping')
         ->name('chatbot.ping');
 
     Route::prefix('analisis')->group(function () {

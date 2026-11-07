@@ -5,7 +5,7 @@ Seluruh rute didefinisikan di [`routes/web.php`](../routes/web.php).
 | No | Method | Path URI | Nama Rute | Middleware | Controller & Method | Berkas View Blade |
 |---|---|---|---|---|---|---|
 | 1 | `GET` | `/login` | `login` | `guest` | `AuthController@showLogin` | `resources/views/auth/login.blade.php` |
-| 2 | `POST` | `/login` | — | `guest` | `AuthController@login` | *(Redirect ke `/`)* |
+| 2 | `POST` | `/login` | — | `guest`, `throttle:5,1` | `AuthController@login` | *(Redirect ke `/`)* |
 | 3 | `POST` | `/logout` | `logout` | `auth` | `AuthController@logout` | *(Redirect ke `/login`)* |
 | 4 | `GET` | `/` | `dashboard` | `auth` | `DashboardController@index` | `resources/views/dashboard/index.blade.php` |
 | 5 | `GET` | `/rekomendasi` | `rekomendasi` | `auth` | `RekomendasiController@index` | `resources/views/dashboard/rekomendasi.blade.php` |
