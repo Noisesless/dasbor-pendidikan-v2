@@ -33,5 +33,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/indikator', [AnalysisController::class, 'indicator'])->name('indikator');
         Route::get('/akreditasi-paud', [AnalysisController::class, 'paud'])->name('paud');
         Route::get('/walidata', [AnalysisController::class, 'walidata'])->name('walidata');
+        Route::get('/kebijakan', [AnalysisController::class, 'kebijakan'])->name('kebijakan');
     });
 });

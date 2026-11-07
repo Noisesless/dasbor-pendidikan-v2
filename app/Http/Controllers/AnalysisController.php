@@ -9,6 +9,7 @@ use App\Services\KemenagParser;
 use App\Services\WalidataPendidikan;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class AnalysisController extends Controller
 {
@@ -601,6 +602,253 @@ class AnalysisController extends Controller
             'tableRows' => $tableRows,
             'paginator' => $paginator,
             'q' => $q,
+        ]);
+    }
+
+    // =====================================================================
+    // Analisis Kebijakan (indeks prioritas + tren historis + konteks BPS)
+    // =====================================================================
+    public function kebijakan(Request $request)
+    {
+        $semester = trim((string) $request->query('semester', '20252'));
+        $availableSemesters = DB::table('student_stats')->select('semester')->distinct()->orderByDesc('semester')->pluck('semester')->all();
+        if ($availableSemesters !== [] && !in_array($semester, $availableSemesters, true)) {
+            $semester = $availableSemesters[0];
+        }
+
+        // ---------- 1. Indikator per kecamatan (data Dapodik) ----------
+        $kecamatanList = DB::table('schools')->select('kecamatan')->distinct()->orderBy('kecamatan')->pluck('kecamatan')->all();
+
+        $siswa = DB::table('student_stats')->where('semester', $semester)
+            ->selectRaw('kecamatan, SUM(total_siswa) siswa, SUM(usia_sesuai) sesuai, SUM(jumlah_rombel) rombel')
+            ->groupBy('kecamatan')->get()->keyBy('kecamatan');
+
+        $guru = DB::table('teacher_stats')->where('semester', $semester)
+            ->selectRaw('kecamatan, SUM(jumlah_guru) guru, SUM(jumlah_sertifikasi) sert')
+            ->groupBy('kecamatan')->get()->keyBy('kecamatan');
+
+        $akreditasi = DB::table('schools')
+            ->whereIn('jenjang', ['SD', 'SMP', 'SMA', 'SMK', 'MI', 'MTS', 'MA'])
+            ->selectRaw("kecamatan, COUNT(*) total, SUM(CASE WHEN akreditasi IS NULL OR akreditasi = '' OR akreditasi IN ('C','Belum') THEN 1 ELSE 0 END) rendah")
+            ->groupBy('kecamatan')->get()->keyBy('kecamatan');
+
+        $sekolahKecil = DB::table('schools')
+            ->leftJoin('student_stats', function ($join) use ($semester) {
+                $join->on('student_stats.npsn', '=', 'schools.npsn')->where('student_stats.semester', '=', $semester);
+            })
+            ->whereIn('schools.jenjang', ['SD', 'SMP'])
+            ->selectRaw('schools.kecamatan,
+                COUNT(*) total,
+                SUM(CASE WHEN student_stats.total_siswa IS NULL THEN 1 ELSE 0 END) tanpa_data,
+                SUM(CASE WHEN student_stats.total_siswa < 60 THEN 1 ELSE 0 END) kecil,
+                SUM(CASE WHEN student_stats.jumlah_rombel > 0 AND student_stats.total_siswa / student_stats.jumlah_rombel > 32 THEN 1 ELSE 0 END) padat')
+            ->groupBy('schools.kecamatan')->get()->keyBy('kecamatan');
+
+        $rows = [];
+        foreach ($kecamatanList as $kec) {
+            $s = $siswa[$kec] ?? null;
+            $g = $guru[$kec] ?? null;
+            $a = $akreditasi[$kec] ?? null;
+            $sk = $sekolahKecil[$kec] ?? null;
+
+            $totalSiswa = (int) ($s->siswa ?? 0);
+            $totalGuru = (int) ($g->guru ?? 0);
+
+            $rows[$kec] = [
+                'kecamatan' => $kec,
+                'siswa' => $totalSiswa,
+                'guru' => $totalGuru,
+                'rombel' => (int) ($s->rombel ?? 0),
+                'rasio' => $totalGuru > 0 ? round($totalSiswa / $totalGuru, 1) : 0,
+                'overage' => $totalSiswa > 0 ? round(($totalSiswa - (int) ($s->sesuai ?? 0)) / $totalSiswa * 100, 1) : 0,
+                'belum_sertifikasi' => $totalGuru > 0 ? round((1 - (int) ($g->sert ?? 0) / $totalGuru) * 100, 1) : 0,
+                'akreditasi_rendah' => (int) ($a->total ?? 0) > 0 ? round((int) $a->rendah / (int) $a->total * 100, 1) : 0,
+                'sekolah_kecil' => (int) ($sk->total ?? 0) > 0 ? round((int) $sk->kecil / (int) $sk->total * 100, 1) : 0,
+                'rombel_padat' => (int) ($sk->total ?? 0) > 0 ? round((int) $sk->padat / (int) $sk->total * 100, 1) : 0,
+                'tanpa_data' => (int) ($sk->tanpa_data ?? 0),
+            ];
+        }
+
+        // Bobot komposit (total 100). Nilai tinggi = prioritas tinggi.
+        $weights = [
+            'rasio' => 20,
+            'overage' => 20,
+            'belum_sertifikasi' => 15,
+            'akreditasi_rendah' => 20,
+            'rombel_padat' => 15,
+            'sekolah_kecil' => 10,
+        ];
+
+        $ranges = [];
+        foreach (array_keys($weights) as $key) {
+            $values = array_column($rows, $key);
+            $ranges[$key] = [min($values), max($values)];
+        }
+
+        foreach ($rows as &$row) {
+            $score = 0;
+            $contrib = [];
+            foreach ($weights as $key => $weight) {
+                [$min, $max] = $ranges[$key];
+                $norm = $max > $min ? ($row[$key] - $min) / ($max - $min) : 0;
+                $contrib[$key] = round($norm * $weight, 1);
+                $score += $norm * $weight;
+            }
+            arsort($contrib);
+            $row['skor'] = round($score, 1);
+            $row['kontribusi'] = $contrib;
+            $row['faktor_utama'] = array_key_first($contrib);
+        }
+        unset($row);
+
+        uasort($rows, fn ($a, $b) => $b['skor'] <=> $a['skor']);
+        $rank = 1;
+        foreach ($rows as &$row) {
+            $row['peringkat'] = $rank++;
+        }
+        unset($row);
+
+        $faktorLabel = [
+            'rasio' => 'Rasio siswa/guru tinggi',
+            'overage' => 'Banyak siswa di luar usia',
+            'belum_sertifikasi' => 'Guru belum sertifikasi',
+            'akreditasi_rendah' => 'Akreditasi C/belum',
+            'rombel_padat' => 'Rombel overload',
+            'sekolah_kecil' => 'Banyak sekolah kecil',
+        ];
+
+        $priorityRows = array_values($rows);
+
+        // ---------- 2. Overage per semester (tren) ----------
+        $overageTrend = DB::table('student_stats')
+            ->selectRaw('semester, SUM(total_siswa) siswa, SUM(usia_sesuai) sesuai')
+            ->whereIn('jenjang', ['SD', 'SMP', 'MI', 'MTS', 'SMA', 'SMK', 'MA'])
+            ->groupBy('semester')->orderBy('semester')->get()
+            ->map(fn ($r) => [
+                'semester' => $r->semester,
+                'overage' => $r->siswa > 0 ? round(($r->siswa - $r->sesuai) / $r->siswa * 100, 1) : 0,
+            ])->all();
+
+        // ---------- 3. Tren historis Dindikpora + Kemenag ----------
+        $histRaw = DB::table('regional_education_stats')
+            ->selectRaw('jenjang, tahun_ajaran, COUNT(DISTINCT kecamatan) kec, SUM(murid_negeri+murid_swasta) murid, SUM(guru_negeri+guru_swasta) guru, SUM(sekolah_negeri+sekolah_swasta) sekolah')
+            ->groupBy('jenjang', 'tahun_ajaran')->orderBy('tahun_ajaran')->get();
+
+        $kecTotal = DB::table('regional_education_stats')->distinct()->count('kecamatan');
+
+        $histYears = $histRaw->pluck('tahun_ajaran')->unique()->sort()->values()->all();
+        $histByJenjang = [];
+        $histComplete = [];
+        foreach ($histRaw as $r) {
+            // Tahun yang tidak mencakup seluruh kecamatan dianggap tidak lengkap
+            // (mis. berkas SD 2019/2020 hanya memuat 18 dari 20 kecamatan).
+            $lengkap = (int) $r->kec >= $kecTotal;
+            $histComplete[$r->jenjang][$r->tahun_ajaran] = $lengkap;
+            $histByJenjang[$r->jenjang][$r->tahun_ajaran] = [
+                'murid' => $lengkap ? (int) $r->murid : null,
+                'guru' => (int) $r->guru,
+                'sekolah' => (int) $r->sekolah,
+            ];
+        }
+
+        $histDatasets = [];
+        foreach ($histByJenjang as $jenjang => $series) {
+            $data = [];
+            foreach ($histYears as $y) {
+                $data[] = $series[$y]['murid'] ?? null;
+            }
+            $histDatasets[$jenjang] = $data;
+        }
+
+        // Perubahan murid per kecamatan (tahun lengkap pertama vs terakhir)
+        $changeByKecamatan = [];
+        foreach (['SD', 'SMP'] as $jenjang) {
+            $data = DB::table('regional_education_stats')->where('jenjang', $jenjang)->get();
+            $yearsPerKec = [];
+            foreach ($data as $r) {
+                $yearsPerKec[$r->kecamatan][$r->tahun_ajaran] = (int) $r->murid_negeri + (int) $r->murid_swasta;
+            }
+
+            $lengkap = array_keys(array_filter($histComplete[$jenjang] ?? [], fn ($v) => $v));
+            sort($lengkap);
+            $jenjangYears = array_values(array_intersect($lengkap, $histYears));
+            $first = $jenjangYears[0] ?? null;
+            $last = $jenjangYears ? $jenjangYears[count($jenjangYears) - 1] : null;
+
+            foreach ($yearsPerKec as $kec => $series) {
+                $awal = $series[$first] ?? 0;
+                $akhir = $series[$last] ?? 0;
+                $changeByKecamatan[$jenjang][$kec] = [
+                    'awal' => $awal,
+                    'akhir' => $akhir,
+                    'delta' => $awal > 0 ? round(($akhir - $awal) / $awal * 100, 1) : 0,
+                ];
+            }
+            $changeByKecamatan[$jenjang]['__years'] = [$first, $last];
+        }
+
+        // ---------- 4. Indikator makro BPS ----------
+        $bpsRaw = DB::table('regional_indicators')->where('wilayah', 'Banjarnegara')->orderBy('tahun')->get();
+        $bpsYears = $bpsRaw->pluck('tahun')->unique()->sort()->values()->all();
+        $bpsSeries = [];
+        foreach ($bpsRaw as $r) {
+            $bpsSeries[$r->indikator][$r->tahun] = (float) $r->nilai;
+        }
+        $bpsMeta = [
+            'hls' => ['label' => 'Harapan Lama Sekolah', 'satuan' => 'tahun', 'warna' => '#2563eb'],
+            'rls' => ['label' => 'Rata-rata Lama Sekolah', 'satuan' => 'tahun', 'warna' => '#7c3aed'],
+            'ipm' => ['label' => 'IPM', 'satuan' => 'indeks', 'warna' => '#0891b2'],
+            'miskin_pct' => ['label' => 'Penduduk Miskin', 'satuan' => '%', 'warna' => '#ef4444'],
+            'gini' => ['label' => 'Indeks Gini', 'satuan' => 'indeks', 'warna' => '#f59e0b'],
+            'pengeluaran' => ['label' => 'Pengeluaran per Kapita', 'satuan' => 'Rp', 'warna' => '#16a34a'],
+            'uhh' => ['label' => 'Usia Harapan Hidup', 'satuan' => 'tahun', 'warna' => '#db2777'],
+        ];
+
+        $bpsCards = [];
+        foreach (['hls', 'rls', 'ipm', 'miskin_pct'] as $key) {
+            $series = $bpsSeries[$key] ?? [];
+            if ($series === []) {
+                continue;
+            }
+            $years = array_keys($series);
+            $latest = $series[max($years)];
+            $prev = count($years) > 1 ? $series[$years[count($years) - 2]] : null;
+            $bpsCards[] = [
+                'key' => $key,
+                'label' => $bpsMeta[$key]['label'],
+                'satuan' => $bpsMeta[$key]['satuan'],
+                'nilai' => $latest,
+                'tahun' => max($years),
+                'delta' => $prev !== null ? round($latest - $prev, 2) : null,
+                'warna' => $bpsMeta[$key]['warna'],
+            ];
+        }
+
+        // ---------- 5. Cakupan data ----------
+        $coverage = [
+            'sekolah_tanpa_siswa' => DB::table('schools')->whereNotIn('npsn',
+                DB::table('student_stats')->where('semester', $semester)->select('npsn')
+            )->count(),
+            'guru_tanpa_nip' => DB::table('teachers')->where(fn ($q) => $q->whereNull('nip')->orWhere('nip', ''))->count(),
+            'total_sekolah' => DB::table('schools')->count(),
+            'total_ptk' => DB::table('teachers')->count(),
+        ];
+
+        return view('dashboard.kebijakan', [
+            'semester' => $semester,
+            'availableSemesters' => $availableSemesters,
+            'priorityRows' => $priorityRows,
+            'faktorLabel' => $faktorLabel,
+            'overageTrend' => $overageTrend,
+            'histYears' => $histYears,
+            'histDatasets' => $histDatasets,
+            'changeByKecamatan' => $changeByKecamatan,
+            'bpsYears' => $bpsYears,
+            'bpsSeries' => $bpsSeries,
+            'bpsMeta' => $bpsMeta,
+            'bpsCards' => $bpsCards,
+            'coverage' => $coverage,
+            'weights' => $weights,
         ]);
     }
 
