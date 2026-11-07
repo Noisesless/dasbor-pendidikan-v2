@@ -4,7 +4,8 @@ Aplikasi analitik dan pemetaan satuan pendidikan, peserta didik, pendidik, serta
 
 ## Fitur Utama
 - **Ringkasan Eksekutif (`/`)**: Agregasi satuan pendidikan, peserta didik, pendidik, rombongan belajar, dan rasio murid per guru lintas semester dan kecamatan.
-- **Rekomendasi untuk Kepala Dinas (`/rekomendasi`)**: Sintesis prioritas aksi eksekutif lintas indikator (kekurangan guru, kualitas data, sarana-prasarana, kandidat regrouping, dan kesenjangan partisipasi).
+- **Rekomendasi untuk Kepala Dinas (`/rekomendasi`)**: Sintesis prioritas aksi eksekutif lintas indikator disertai diagnostik khusus cakupan data guru **MI dan MTs** (perbandingan rasio sekolah umum 15,8:1 vs rasio gabungan 19,6:1).
+- **Chatbot Asisten Data Pendidikan (`/chatbot/ask`)**: Asisten analitik berbasis **Hybrid RAG (Online Gemini API + Offline Basis Data Lokal)** yang terbatas pada lingkup data pendidikan Kabupaten Banjarnegara dan menerangkan rincian rekomendasi serta keterbatasan data guru MI & MTs.
 - **Demografi Peserta Didik (`/demografi`)**: Distribusi siswa menurut kelompok usia sekolah (5–6, 7–12, 13–15, 16–18 tahun), komposisi jenis kelamin, dan proyeksi penduduk usia sekolah.
 - **Infrastruktur & Satuan Pendidikan (`/infrastruktur`)**: Sebaran sekolah negeri dan swasta per jenjang (PAUD, TK, SD, SMP, SMA, SMK, MI, MTs, MA, PKBM) dan profil akreditasi.
 - **Ketenagakerjaan Guru (`/guru`)**: Komposisi status kepegawaian (PNS, PPPK, GTY, GTT, Honor), tingkat sertifikasi pendidik, dan beban mengajar per wilayah.
@@ -73,6 +74,8 @@ Aplikasi analitik dan pemetaan satuan pendidikan, peserta didik, pendidik, serta
 | `DB_DATABASE` | Ya | Konfigurasi database | Path berkas SQLite atau nama database MySQL/MariaDB |
 | `SEED_ADMIN_EMAIL` | Opsional | Administrator sistem | Email akun awal saat menjalankan database seeder |
 | `SEED_ADMIN_PASSWORD` | Opsional | Administrator sistem | Kata sandi akun awal saat menjalankan database seeder |
+| `GEMINI_API_KEY` | Opsional | Google AI Studio | Kunci API Gemini untuk mode Online RAG pada Chatbot (otomatis beralih ke Offline RAG jika kosong) |
+| `GEMINI_MODEL` | Opsional | Konfigurasi AI | Model Gemini yang digunakan (default: `gemini-3.5-flash-lite`) |
 
 ## Akun Awal (Seeder)
 Akun awal dibuat melalui database seeder menggunakan variabel `SEED_ADMIN_EMAIL` dan `SEED_ADMIN_PASSWORD` yang diatur pada berkas `.env`. Jangan gunakan kredensial development di lingkungan produksi.

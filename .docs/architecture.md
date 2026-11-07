@@ -25,8 +25,8 @@ flowchart TD
 
     subgraph App["Application & Service Layer"]
         F["App\\Support\\Filters\nApp\\Support\\KecamatanGeo"]
-        SV["App\\Services\\*\n(AnalitikIndikator, DindikporaParser,\nKemenagParser, DisarpusParser,\nWalidataPendidikan)"]
-        CT["Controllers\n(Dashboard, Rekomendasi, Demografi,\nInfrastruktur, Guru, Peta,\nAnalysis, AdvancedAnalysis, Auth)"]
+        SV["App\\Services\\*\n(AnalitikIndikator, DindikporaParser,\nKemenagParser, DisarpusParser,\nWalidataPendidikan, EducationRagService)"]
+        CT["Controllers\n(Dashboard, Rekomendasi, Chatbot,\nDemografi, Infrastruktur, Guru,\nPeta, Analysis, AdvancedAnalysis, Auth)"]
     end
 
     subgraph View["Presentation Layer"]
@@ -63,9 +63,10 @@ dasbor-pendidikan-v2-main/
 │   │   ├── GuruController.php             # Status kepegawaian & sertifikasi guru (/guru)
 │   │   ├── PetaController.php             # Peta choropleth, heatmap & titik sekolah (/peta)
 │   │   ├── AnalysisController.php         # 8 modul analisis kebijakan (/analisis/*)
-│   │   └── AdvancedAnalysisController.php # Analisis Kualitas Data, Sarana & Regrouping (/analisis/*)
+│   │   ├── AdvancedAnalysisController.php # Analisis Kualitas Data, Sarana & Regrouping (/analisis/*)
+│   │   └── ChatbotController.php          # Endpoint Hybrid RAG Chatbot (POST /chatbot/ask)
 │   ├── Models/                       # Eloquent Models (School, StudentStat, TeacherStat, Teacher, Population, User)
-│   ├── Services/                     # Parser & agregator lintas instansi (AnalitikIndikator, DindikporaParser, KemenagParser, DisarpusParser, WalidataPendidikan)
+│   ├── Services/                     # Parser, agregator & Hybrid RAG (EducationRagService, AnalitikIndikator, DindikporaParser, KemenagParser, DisarpusParser, WalidataPendidikan)
 │   └── Support/                      # Helper filter global (Filters.php) & utilitas spasial (KecamatanGeo.php)
 ├── database/
 │   ├── migrations/                   # 9 berkas migrasi skema tabel & indeks komposit

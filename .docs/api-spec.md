@@ -49,3 +49,8 @@ Diterima oleh rute `/`, `/demografi`, `/infrastruktur`, `/guru`, dan `/peta` mel
 | `GET` | `/analisis/sarana` | `sarana` | `web`, `auth` | `AdvancedAnalysisController@sarana` | Analisis kondisi ruang kelas, fasilitas sekolah, dan estimasi kebutuhan anggaran |
 | `GET` | `/analisis/regrouping` | `regrouping` | `web`, `auth` | `AdvancedAnalysisController@regrouping` | Analisis pasangan kandidat regrouping SD berdasarkan jarak spasial Haversine & jumlah siswa |
 
+### D. Chatbot Analitik Pendidikan (Hybrid RAG)
+| Method | URI | Route Name | Middleware | Controller & Action | Deskripsi Respons |
+|---|---|---|---|---|---|
+| `POST` | `/chatbot/ask` | `chatbot.ask` | `web`, `auth`, `throttle:30,1` | `ChatbotController@ask` | Menerima JSON `{ question, mode: "auto"\|"online"\|"offline", history }`, mengambil fakta dari `EducationRagService`, dan mengembalikan `{ answer, mode_used, sources, follow_ups }` (`200 OK`) |
+

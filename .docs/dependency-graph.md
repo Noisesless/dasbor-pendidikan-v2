@@ -64,6 +64,7 @@ flowchart LR
 |---|---|---|
 | `app/Http/Controllers/AnalysisController.php` | 8 view di `resources/views/dashboard/*` | Mengorkestrasi sub-menu analisis kebijakan `/analisis/*` |
 | `app/Http/Controllers/AdvancedAnalysisController.php` | `RekomendasiController`, `data-health.blade.php`, `sarana.blade.php`, `regrouping.blade.php` | Menyediakan perhitungan bersama kualitas data, sarana, kandidat regrouping, serta konsumsi `RekomendasiController` |
+| `app/Services/EducationRagService.php` | `ChatbotController` (`POST /chatbot/ask`), `partials/chatbot.blade.php` | Mesin Hybrid RAG (Online Gemini API + Offline Basis Data Lokal) untuk lingkup data pendidikan & penjelasan kekurangan data guru MI/MTs |
 | `app/Support/KecamatanGeo.php` | `FixSchoolCoordinates.php`, `DataImport.php`, `ImportSimudik.php` | Validasi geometri poligon GeoJSON 20 kecamatan |
 | `app/Console/Commands/DataImport.php` | Tabel `schools`, `student_stats`, `teacher_stats`, `teachers`, `populations` | Pipeline ETL data Dapodik & kependudukan |
 

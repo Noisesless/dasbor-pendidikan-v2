@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DemografiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalysisController;
@@ -27,6 +28,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/infrastruktur', [InfrastrukturController::class, 'index'])->name('infrastruktur');
     Route::get('/guru', [GuruController::class, 'index'])->name('guru');
     Route::get('/peta', [PetaController::class, 'index'])->name('peta');
+    Route::post('/chatbot/ask', [ChatbotController::class, 'ask'])
+        ->middleware('throttle:30,1')
+        ->name('chatbot.ask');
 
     Route::prefix('analisis')->group(function () {
         Route::get('/gap', [AnalysisController::class, 'gap'])->name('gap');

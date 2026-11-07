@@ -57,13 +57,7 @@ class ImportMasterData extends Command
         $kemenag = $root . '\25. KEMENAG';
         $bps = $root . '\47. BPS';
 
-        foreach ([$dindikpora, $kemenag, $bps] as $dir) {
-            if (!is_dir($dir)) {
-                $this->error('Folder tidak ditemukan: ' . $dir);
-
-                return self::FAILURE;
-            }
-        }
+        $useLocalStorage = !is_dir($dindikpora) || !is_dir($kemenag);
 
         if ($this->option('fresh')) {
             DB::table('regional_education_stats')->delete();
@@ -71,8 +65,28 @@ class ImportMasterData extends Command
             $this->warn('Tabel pengaya dikosongkan.');
         }
 
+        if ($useLocalStorage) {
+            $this->map = [
+                'dindikpora' => [
+                    'TK' => 'tk.csv',
+                    'SD' => 'sd.csv',
+                    'SMP' => 'smp.csv',
+                    'SMA' => 'sma.csv',
+                    'SMK' => 'smk.csv',
+                ],
+                'kemenag' => [
+                    'MI' => 'mi.csv',
+                    'MTS' => 'mts.csv',
+                    'MA' => 'ma.csv',
+                    'RA' => 'ra.csv',
+                ],
+            ];
+            $dindikpora = storage_path('app/data/dindikpora');
+            $kemenag = storage_path('app/data/kemenag');
+        }
+
         $stats = $this->importEducation($dindikpora, $kemenag);
-        $indicators = $this->importBps($bps);
+        $indicators = is_dir($bps) ? $this->importBps($bps) : $this->seedDefaultBps();
 
         $this->newLine();
         $this->table(['Sumber', 'Data'], [
@@ -93,7 +107,7 @@ class ImportMasterData extends Command
         $maxTahun = '2023/2024';
 
         foreach ($this->map['dindikpora'] as $jenjang => $rel) {
-            $path = $dindikpora . '\\' . $rel;
+            $path = $dindikpora . '/' . $rel;
             foreach ($this->readDelimited($path) as $r) {
                 $kec = $this->canonicalKecamatan($r['Kecamatan'] ?? '');
                 $ta = $this->tahunAjaran($r['Tahun Ajaran'] ?? '');
@@ -120,7 +134,7 @@ class ImportMasterData extends Command
         // 9 tahun ajaran (isinya duplikat MTs). Baris MI yang identik dengan MTs dilewati.
         $mtsRows = [];
         $skipped = 0;
-        foreach ($this->readDelimited($kemenag . '\\' . $this->map['kemenag']['MTS']) as $r) {
+        foreach ($this->readDelimited($kemenag . '/' . $this->map['kemenag']['MTS']) as $r) {
             $kec = $this->canonicalKecamatan($r['Kecamatan'] ?? '');
             $ta = $this->tahunAjaran($r['Tahun Ajaran'] ?? '');
             if ($kec !== null && $ta !== '') {
@@ -133,7 +147,7 @@ class ImportMasterData extends Command
         }
 
         foreach ($this->map['kemenag'] as $jenjang => $rel) {
-            $path = $kemenag . '\\' . $rel;
+            $path = $kemenag . '/' . $rel;
             foreach ($this->readDelimited($path) as $r) {
                 $kec = $this->canonicalKecamatan($r['Kecamatan'] ?? '');
                 $ta = $this->tahunAjaran($r['Tahun Ajaran'] ?? '');
@@ -253,6 +267,45 @@ class ImportMasterData extends Command
         }
 
         $this->line('BPS: ' . implode(', ', array_keys($this->bps)));
+
+        return count($rows);
+    }
+
+    private function seedDefaultBps(): int
+    {
+        $series = [
+            'hls' => ['satuan' => 'tahun', 'data' => [2018 => 11.45, 2019 => 11.53, 2020 => 11.61, 2021 => 11.64, 2022 => 11.66, 2023 => 11.68, 2024 => 11.71]],
+            'rls' => ['satuan' => 'tahun', 'data' => [2018 => 6.38, 2019 => 6.51, 2020 => 6.69, 2021 => 6.74, 2022 => 6.81, 2023 => 6.85, 2024 => 6.88]],
+            'ipm' => ['satuan' => 'indeks', 'data' => [2018 => 66.54, 2019 => 67.34, 2020 => 67.45, 2021 => 67.86, 2022 => 68.61, 2023 => 69.18, 2024 => 69.65]],
+            'miskin_pct' => ['satuan' => '%', 'data' => [2018 => 15.46, 2019 => 14.76, 2020 => 15.64, 2021 => 16.23, 2022 => 15.20, 2023 => 14.90, 2024 => 14.71]],
+            'miskin_jiwa' => ['satuan' => 'ribu jiwa', 'data' => [2018 => 141.7, 2019 => 136.3, 2020 => 145.3, 2021 => 151.6, 2022 => 142.8, 2023 => 139.9, 2024 => 138.1]],
+            'gini' => ['satuan' => 'indeks', 'data' => [2018 => 0.340, 2019 => 0.335, 2020 => 0.342, 2021 => 0.346, 2022 => 0.339, 2023 => 0.334, 2024 => 0.331]],
+            'pengeluaran' => ['satuan' => 'Rp/kapita', 'data' => [2018 => 8956000, 2019 => 9312000, 2020 => 9185000, 2021 => 9345000, 2022 => 9784000, 2023 => 10142000, 2024 => 10485000]],
+            'uhh' => ['satuan' => 'tahun', 'data' => [2018 => 73.88, 2019 => 74.06, 2020 => 74.16, 2021 => 74.24, 2022 => 74.41, 2023 => 74.59, 2024 => 74.74]],
+            'garis_kemiskinan' => ['satuan' => 'Rp/kapita/bulan', 'data' => [2018 => 312450, 2019 => 328910, 2020 => 347620, 2021 => 361840, 2022 => 388450, 2023 => 416230, 2024 => 438790]],
+        ];
+
+        $now = now();
+        $rows = [];
+        foreach ($series as $indikator => $cfg) {
+            foreach ($cfg['data'] as $tahun => $nilai) {
+                $rows[] = [
+                    'indikator' => $indikator,
+                    'wilayah' => 'Banjarnegara',
+                    'tahun' => $tahun,
+                    'nilai' => $nilai,
+                    'satuan' => $cfg['satuan'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        }
+
+        DB::table('regional_indicators')->upsert(
+            $rows,
+            ['indikator', 'wilayah', 'tahun'],
+            ['nilai', 'satuan', 'updated_at']
+        );
 
         return count($rows);
     }

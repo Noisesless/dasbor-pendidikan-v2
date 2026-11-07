@@ -52,6 +52,52 @@
     </div>
 </div>
 
+{{-- Penjelasan Keterbatasan Data Guru MI & MTs --}}
+<div class="mb-8 rounded-2xl border border-amber-200/90 bg-amber-50/60 p-5 sm:p-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="max-w-3xl">
+            <span class="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 ring-1 ring-amber-300/80">
+                Catatan Akurasi Data
+            </span>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 mt-2">Cakupan Guru Madrasah</h2>
+            <p class="text-sm text-slate-700 mt-1 leading-relaxed">
+                Perhitungan rasio siswa per guru dan kepadatan rombel pada halaman ini dipengaruhi oleh belum terintegrasinya data guru per satuan pendidikan (NPSN) untuk <strong>{{ $f0($fakta['miSekolah']) }} MI ({{ $f0($fakta['miSiswa']) }} siswa)</strong> dan <strong>{{ $f0($fakta['mtsSekolah']) }} MTs ({{ $f0($fakta['mtsSiswa']) }} siswa)</strong> ke tabel Dapodik. Selain itu, berkas CSV agregat MI dari Satu Data Kemenag mengalami duplikasi dengan data MTs pada 7 dari 9 tahun ajaran.
+            </p>
+        </div>
+        <button type="button"
+                onclick="window.dispatchEvent(new CustomEvent('open-chatbot', { detail: { prompt: 'Mengapa analisis di halaman Rekomendasi belum sempurna terkait data guru MI dan MTs?' } }))"
+                class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-blue-700 transition cursor-pointer">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+            </svg>
+            <span>Tanya Asisten</span>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 mt-4">
+        <div class="rounded-xl bg-white/90 border border-amber-200/80 p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Guru MI</p>
+            <p class="text-xl font-extrabold text-rose-600 mt-1">{{ $f0($fakta['miGuruDapodik']) }} <span class="text-xs font-semibold text-slate-500">di Dapodik</span></p>
+            <p class="text-xs text-slate-600 mt-1">{{ $f0($fakta['miSekolah']) }} MI ({{ $f0($fakta['miSiswa']) }} siswa). Agregat Kemenag valid terakhir TA 2018/2019: <strong>{{ $f0($fakta['miGuruKemenag']) }} guru</strong>.</p>
+        </div>
+        <div class="rounded-xl bg-white/90 border border-amber-200/80 p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Guru MTs</p>
+            <p class="text-xl font-extrabold text-rose-600 mt-1">{{ $f0($fakta['mtsGuruDapodik']) }} <span class="text-xs font-semibold text-slate-500">di Dapodik</span></p>
+            <p class="text-xs text-slate-600 mt-1">{{ $f0($fakta['mtsSekolah']) }} MTs ({{ $f0($fakta['mtsSiswa']) }} siswa). Agregat kecamatan Kemenag TA 2024/2025: <strong>{{ $f0($fakta['mtsGuruKemenag']) }} guru</strong>.</p>
+        </div>
+        <div class="rounded-xl bg-white/90 border border-amber-200/80 p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Rasio Sekolah Umum</p>
+            <p class="text-xl font-extrabold text-emerald-700 mt-1">{{ $f1($fakta['rasioKabupatenUmum']) }} : 1</p>
+            <p class="text-xs text-slate-600 mt-1">Khusus non-madrasah ({{ $f0($fakta['totalSiswaUmum']) }} siswa / {{ $f0($fakta['totalGuru']) }} guru Dapodik).</p>
+        </div>
+        <div class="rounded-xl bg-white/90 border border-amber-200/80 p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Rasio Gabungan</p>
+            <p class="text-xl font-extrabold text-amber-700 mt-1">{{ $f1($fakta['rasioKabupaten']) }} : 1</p>
+            <p class="text-xs text-slate-600 mt-1">Bias karena siswa MI/MTs/MA dihitung tanpa guru. Estimasi dengan guru Kemenag: <strong>{{ $f1($fakta['rasioEstimasiLengkap']) }} : 1</strong>.</p>
+        </div>
+    </div>
+</div>
+
 {{-- Tiga keputusan --}}
 <h2 class="text-base font-bold text-slate-900 mb-3">Tiga keputusan yang perlu diambil tahun ini</h2>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-8">
@@ -181,7 +227,7 @@
                         <td class="px-4 py-3">
                             <span class="rounded-md px-2 py-0.5 text-xs font-bold ring-1 {{ $g['chip'] }}">{{ $r['prioritas'] }}</span>
                         </td>
-                        <td class="px-4 py-3 text-right font-semibold text-slate-800 whitespace-nowrap">{{ $r['biaya'] ?? '—' }}</td>
+                        <td class="px-4 py-3 text-right font-semibold text-slate-800 whitespace-nowrap">{{ $r['biaya'] ?? '-' }}</td>
                         <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ $r['tenggat'] }}</td>
                         <td class="px-4 py-3 text-slate-500">{{ $r['unit'] }}</td>
                     </tr>
@@ -200,8 +246,10 @@
             <thead class="bg-slate-50 text-slate-500">
                 <tr>
                     <th class="px-4 py-3 text-left font-semibold">Kecamatan</th>
-                    <th class="px-4 py-3 text-right font-semibold">Siswa</th>
-                    <th class="px-4 py-3 text-right font-semibold">Rasio</th>
+                    <th class="px-4 py-3 text-right font-semibold">Siswa Total</th>
+                    <th class="px-4 py-3 text-right font-semibold">Siswa MI &amp; MTs</th>
+                    <th class="px-4 py-3 text-right font-semibold">Rasio Gabungan</th>
+                    <th class="px-4 py-3 text-right font-semibold">Rasio Umum</th>
                     <th class="px-4 py-3 text-right font-semibold">Sertifikasi</th>
                     <th class="px-4 py-3 text-right font-semibold">Overage</th>
                     <th class="px-4 py-3 text-left font-semibold">Ambang terlampaui</th>
@@ -212,11 +260,15 @@
                     <tr class="hover:bg-slate-50/70">
                         <td class="px-4 py-3 font-semibold text-slate-800">{{ $k['nama'] }}</td>
                         <td class="px-4 py-3 text-right text-slate-600">{{ $f0($k['siswa']) }}</td>
+                        <td class="px-4 py-3 text-right text-amber-700 font-medium">{{ $f0($k['siswa_mi_mts'] ?? 0) }}</td>
                         <td class="px-4 py-3 text-right font-semibold {{ ($k['rasio'] ?? 0) > 20 ? 'text-rose-600' : 'text-slate-600' }}">
-                            {{ $k['rasio'] !== null ? $f1($k['rasio']) : '—' }}
+                            {{ $k['rasio'] !== null ? $f1($k['rasio']) : '-' }}
                         </td>
-                        <td class="px-4 py-3 text-right text-slate-600">{{ $k['sertifikasi'] !== null ? $f1($k['sertifikasi']) . '%' : '—' }}</td>
-                        <td class="px-4 py-3 text-right text-slate-600">{{ $k['overage'] !== null ? $f1($k['overage']) . '%' : '—' }}</td>
+                        <td class="px-4 py-3 text-right font-semibold {{ ($k['rasio_umum'] ?? 0) > 20 ? 'text-rose-600' : 'text-emerald-700' }}">
+                            {{ ($k['rasio_umum'] ?? null) !== null ? $f1($k['rasio_umum']) : '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-right text-slate-600">{{ $k['sertifikasi'] !== null ? $f1($k['sertifikasi']) . '%' : '-' }}</td>
+                        <td class="px-4 py-3 text-right text-slate-600">{{ $k['overage'] !== null ? $f1($k['overage']) . '%' : '-' }}</td>
                         <td class="px-4 py-3">
                             <div class="flex flex-wrap gap-1">
                                 @foreach ($k['faktor'] as $f)
@@ -226,7 +278,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-6 text-center text-slate-400">Tidak ada kecamatan yang melewati ambang batas.</td></tr>
+                    <tr><td colspan="8" class="px-4 py-6 text-center text-slate-400">Tidak ada kecamatan yang melewati ambang batas.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -240,8 +292,8 @@
         <li>Semua angka dihitung ulang dari basis data aplikasi ini, bukan diketik manual. Membuka halaman terkait lewat tautan di tiap kartu akan menampilkan rincian yang sama.</li>
         <li>Prioritas ditentukan oleh besarnya dampak pada layanan belajar, bukan oleh nilai uang semata. Kritis berarti membiarkan keadaan berjalan menimbulkan risiko keselamatan atau kegagalan layanan.</li>
         <li>Estimasi anggaran sarana memakai unit cost yang dapat diubah di halaman Sarana &amp; Anggaran; angka ini belum RAB dan belum direkonsiliasi dengan SIMU-DIK.</li>
-        <li>Rasio siswa per guru memakai seluruh jenjang, termasuk PAUD dan PKBM, sehingga tidak sepenuhnya setara dengan rasio resmi per jenjang.</li>
-        <li>Data guru madrasah belum tersedia di dinas, sehingga rekomendasi untuk MI/MTs/MA baru sebatas penetapan kebutuhan data.</li>
+        <li>Rasio siswa per guru ditampilkan dalam dua versi: <strong>Rasio Gabungan ({{ $f1($fakta['rasioKabupaten']) }}:1)</strong> yang mencakup seluruh siswa termasuk madrasah, serta <strong>Rasio Sekolah Umum ({{ $f1($fakta['rasioKabupatenUmum']) }}:1)</strong> yang memisahkan {{ $f0($fakta['miSiswa']) }} siswa MI, {{ $f0($fakta['mtsSiswa']) }} siswa MTs, dan {{ $f0($fakta['maSiswa']) }} siswa MA karena rekaman guru madrasah per NPSN di tabel Dapodik masih 0.</li>
+        <li>Pada sumber agregat Satu Data Kemenag, data guru MTs tersedia di tingkat kecamatan ({{ $f0($fakta['mtsGuruKemenag']) }} guru TA 2024/2025), sedangkan berkas CSV MI mengalami duplikasi dengan MTs pada 7 dari 9 tahun ajaran (data valid terakhir TA 2018/2019: {{ $f0($fakta['miGuruKemenag']) }} guru MI). Gunakan tombol <strong>Tanya Asisten</strong> di kanan bawah untuk mengeksplorasi rincian per kecamatan.</li>
     </ul>
 </div>
 @endsection

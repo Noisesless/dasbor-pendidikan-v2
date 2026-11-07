@@ -25,6 +25,8 @@
 | `SESSION_DRIVER` | Ya | Konfigurasi sesi | `database` atau `file` |
 | `SEED_ADMIN_EMAIL` | Opsional | Administrator sistem | Email akun awal untuk `db:seed` |
 | `SEED_ADMIN_PASSWORD` | Opsional | Administrator sistem | Kata sandi akun awal untuk `db:seed` |
+| `GEMINI_API_KEY` | Opsional | Google AI Studio | Kunci API Gemini untuk mode Online RAG pada Chatbot |
+| `GEMINI_MODEL` | Opsional | Konfigurasi AI | Model Gemini untuk Chatbot (default: `gemini-3.5-flash-lite`) |
 
 ---
 

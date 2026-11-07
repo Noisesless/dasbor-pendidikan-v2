@@ -40,8 +40,43 @@ class RekomendasiController extends AdvancedAnalysisController
         $totalSertifikasi = (int) $guru->sum('jumlah_sertifikasi');
         $totalUsiaSesuai = (int) $siswa->sum('usia_sesuai');
 
+        $madrasahJenjang = ['MI', 'MTS', 'MA'];
+        $siswaUmumRows = $siswa->reject(fn ($r) => in_array($r->jenjang, $madrasahJenjang, true));
+        $totalSiswaUmum = (int) $siswaUmumRows->sum('total_siswa');
+
+        $miSiswa = (int) $siswa->where('jenjang', 'MI')->sum('total_siswa');
+        $mtsSiswa = (int) $siswa->where('jenjang', 'MTS')->sum('total_siswa');
+        $maSiswa = (int) $siswa->where('jenjang', 'MA')->sum('total_siswa');
+
+        $miSekolah = (int) DB::table('schools')->where('jenjang', 'MI')->count();
+        $mtsSekolah = (int) DB::table('schools')->where('jenjang', 'MTS')->count();
+        $maSekolah = (int) DB::table('schools')->where('jenjang', 'MA')->count();
+
+        $miGuruDapodik = (int) $guru->where('jenjang', 'MI')->sum('jumlah_guru');
+        $mtsGuruDapodik = (int) $guru->where('jenjang', 'MTS')->sum('jumlah_guru');
+        $maGuruDapodik = (int) $guru->where('jenjang', 'MA')->sum('jumlah_guru');
+
+        // Data agregat guru Kemenag dari berkas Satu Data Kemenag (bukan per-NPSN):
+        // - MI: hanya tahun ajaran 2018/2019 yang valid (1.563 guru di 202 MI); 7 TA lain duplikat dengan MTs.
+        // - MTs: tahun ajaran 2024/2025 mencatat 745 guru (165 negeri + 580 swasta di 41 MTs).
+        // - MA: tahun ajaran 2024/2025 mencatat 363 guru (138 negeri + 225 swasta di 19 MA).
+        $miGuruKemenag = (int) DB::table('regional_education_stats')
+            ->where('sumber', 'kemenag')->where('jenjang', 'MI')->where('tahun_ajaran', '2018/2019')
+            ->selectRaw('COALESCE(SUM(guru_negeri + guru_swasta), 0) as g')->value('g') ?: 1563;
+        $mtsGuruKemenag = (int) DB::table('regional_education_stats')
+            ->where('sumber', 'kemenag')->where('jenjang', 'MTS')->where('tahun_ajaran', '2024/2025')
+            ->selectRaw('COALESCE(SUM(guru_negeri + guru_swasta), 0) as g')->value('g') ?: 745;
+        $maGuruKemenag = (int) DB::table('regional_education_stats')
+            ->where('sumber', 'kemenag')->where('jenjang', 'MA')->where('tahun_ajaran', '2024/2025')
+            ->selectRaw('COALESCE(SUM(guru_negeri + guru_swasta), 0) as g')->value('g') ?: 363;
+        $estimasiGuruMadrasah = $miGuruKemenag + $mtsGuruKemenag + $maGuruKemenag;
+
         $padat = $siswa->filter(fn ($r) => (int) $r->jumlah_rombel > 0
             && (int) $r->total_siswa / (int) $r->jumlah_rombel > 32);
+        $padatUmum = $siswaUmumRows->filter(fn ($r) => (int) $r->jumlah_rombel > 0
+            && (int) $r->total_siswa / (int) $r->jumlah_rombel > 32);
+        $padatMadrasahPlaceholder = $siswa->filter(fn ($r) => in_array($r->jenjang, $madrasahJenjang, true)
+            && (int) $r->jumlah_rombel <= 1 && (int) $r->total_siswa > 32);
         $kecil = $siswa->filter(fn ($r) => (int) $r->total_siswa > 0 && (int) $r->total_siswa < 60);
 
         $akreditasiRendah = DB::table('schools')
@@ -60,6 +95,8 @@ class RekomendasiController extends AdvancedAnalysisController
         $kecamatan = [];
         foreach ($siswaPerKec as $kec => $rows) {
             $s = (int) $rows->sum('total_siswa');
+            $sUmum = (int) $rows->reject(fn ($r) => in_array($r->jenjang, $madrasahJenjang, true))->sum('total_siswa');
+            $sMiMts = (int) $rows->whereIn('jenjang', ['MI', 'MTS'])->sum('total_siswa');
             $sesuai = (int) $rows->sum('usia_sesuai');
             $g = isset($guruPerKec[$kec]) ? (int) $guruPerKec[$kec]->sum('jumlah_guru') : 0;
             $sert = isset($guruPerKec[$kec]) ? (int) $guruPerKec[$kec]->sum('jumlah_sertifikasi') : 0;
@@ -67,8 +104,11 @@ class RekomendasiController extends AdvancedAnalysisController
             $kecamatan[$kec] = [
                 'nama' => $kec,
                 'siswa' => $s,
+                'siswa_umum' => $sUmum,
+                'siswa_mi_mts' => $sMiMts,
                 'guru' => $g,
                 'rasio' => $g > 0 ? round($s / $g, 1) : null,
+                'rasio_umum' => $g > 0 ? round($sUmum / $g, 1) : null,
                 'sertifikasi' => $g > 0 ? round($sert / max(1, $g) * 100, 1) : null,
                 'overage' => $s > 0 ? round((1 - $sesuai / $s) * 100, 1) : null,
                 'rombel_padat' => (int) ($padatPerKec[$kec] ?? 0),
@@ -148,13 +188,19 @@ class RekomendasiController extends AdvancedAnalysisController
             'semester' => self::BASELINE_SEMESTER,
             'semesterLabel' => $this->labelSemester(),
             'totalSiswa' => $totalSiswa,
+            'totalSiswaUmum' => $totalSiswaUmum,
             'totalGuru' => $totalGuru,
             'rasioKabupaten' => $totalGuru > 0 ? round($totalSiswa / $totalGuru, 1) : 0,
+            'rasioKabupatenUmum' => $totalGuru > 0 ? round($totalSiswaUmum / $totalGuru, 1) : 0,
+            'rasioEstimasiLengkap' => ($totalGuru + $estimasiGuruMadrasah) > 0 ? round($totalSiswa / ($totalGuru + $estimasiGuruMadrasah), 1) : 0,
             'pctSertifikasi' => $totalGuru > 0 ? round($totalSertifikasi / $totalGuru * 100, 1) : 0,
             'pctOverage' => $totalSiswa > 0 ? round((1 - $totalUsiaSesuai / $totalSiswa) * 100, 1) : 0,
             'siswaOverage' => max(0, $totalSiswa - $totalUsiaSesuai),
             'rombelPadat' => $padat->count(),
+            'rombelPadatUmum' => $padatUmum->count(),
+            'rombelPadatMadrasahPlaceholder' => $padatMadrasahPlaceholder->count(),
             'rombelPadatPerJenjang' => $padat->groupBy('jenjang')->map->count()->sortDesc()->all(),
+            'rombelPadatUmumPerJenjang' => $padatUmum->groupBy('jenjang')->map->count()->sortDesc()->all(),
             'sekolahKecilSd' => $regrouping['sekolahKecil'],
             'akreditasiRendah' => (clone $akreditasiRendah)->count(),
             'akreditasiRendahPerJenjang' => (clone $akreditasiRendah)
@@ -163,6 +209,19 @@ class RekomendasiController extends AdvancedAnalysisController
             'tanpaDataSiswa' => DB::table('schools')->whereNotIn('npsn', $punyaSiswa->all())->count(),
             'madrasahTotal' => $madrasah->count(),
             'madrasahTanpaGuru' => $madrasah->diff($punyaGuru)->count(),
+            'miSekolah' => $miSekolah,
+            'miSiswa' => $miSiswa,
+            'miGuruDapodik' => $miGuruDapodik,
+            'miGuruKemenag' => $miGuruKemenag,
+            'mtsSekolah' => $mtsSekolah,
+            'mtsSiswa' => $mtsSiswa,
+            'mtsGuruDapodik' => $mtsGuruDapodik,
+            'mtsGuruKemenag' => $mtsGuruKemenag,
+            'maSekolah' => $maSekolah,
+            'maSiswa' => $maSiswa,
+            'maGuruDapodik' => $maGuruDapodik,
+            'maGuruKemenag' => $maGuruKemenag,
+            'estimasiGuruMadrasah' => $estimasiGuruMadrasah,
             'tanpaTelepon' => DB::table('schools')
                 ->where(fn ($q) => $q->whereNull('telepon')->orWhere('telepon', ''))->count(),
             'jenjangSalah' => $jenjangSalah,
@@ -237,7 +296,7 @@ class RekomendasiController extends AdvancedAnalysisController
                 'judul' => 'Rehabilitasi ' . $this->n($rusakSb) . ' ruang kelas rusak sedang/berat',
                 'temuan' => [
                     $this->n($ruangRusak) . ' dari ' . $this->n($ruangTotal) . ' ruang kelas (' . $this->n($pctTidakLayak, 1) . '%) tidak layak pakai; ' . $this->n($rusakSb) . ' di antaranya rusak sedang atau berat.',
-                    'Dengan target rasio 28 siswa per rombel, kebutuhan ' . $this->n(array_sum(array_column($sarana, 'kebutuhan_ruang'))) . ' ruang kelas sementara tersedia ' . $this->n($ruangTotal) . '. Secara total cukup, tetapi ' . $this->n($defisit) . ' ruang masih kurang karena sebarannya tidak merata — SMA kurang ' . $this->n(array_sum(array_column(array_filter($sarana, fn ($x) => $x['jenjang'] === 'SMA'), 'defisit'))) . ' ruang dan SMK kurang ' . $this->n(array_sum(array_column(array_filter($sarana, fn ($x) => $x['jenjang'] === 'SMK'), 'defisit'))) . ' ruang.',
+                    'Dengan target rasio 28 siswa per rombel, kebutuhan ' . $this->n(array_sum(array_column($sarana, 'kebutuhan_ruang'))) . ' ruang kelas sementara tersedia ' . $this->n($ruangTotal) . '. Secara total cukup, tetapi ' . $this->n($defisit) . ' ruang masih kurang karena sebarannya tidak merata: SMA kurang ' . $this->n(array_sum(array_column(array_filter($sarana, fn ($x) => $x['jenjang'] === 'SMA'), 'defisit'))) . ' ruang dan SMK kurang ' . $this->n(array_sum(array_column(array_filter($sarana, fn ($x) => $x['jenjang'] === 'SMK'), 'defisit'))) . ' ruang.',
                     'Estimasi kebutuhan anggaran ' . $this->rupiah($totalBiaya) . ' (rehab ringan ' . $this->rupiah($biaya['ringan']) . ', sedang ' . $this->rupiah($biaya['sedang']) . ', berat ' . $this->rupiah($biaya['berat']) . ', ruang baru ' . $this->rupiah($biaya['baru']) . ').',
                 ],
                 'tindakan' => [
@@ -247,7 +306,7 @@ class RekomendasiController extends AdvancedAnalysisController
                 ],
                 'dampak' => 'Menghapus seluruh ruang tidak layak dalam tiga tahun dan menutup defisit ' . $this->n($defisit) . ' ruang kelas.',
                 'biaya' => $this->rupiah($totalBiaya),
-                'tenggat' => 'APBD 2027 — tahap I',
+                'tenggat' => 'APBD 2027 - tahap I',
                 'unit' => 'Bidang Sarana Prasarana',
                 'dasar' => 'Walidata Pendidikan 2020–2024, Dapodik ' . $label,
                 'tautan' => route('sarana'),
@@ -258,22 +317,22 @@ class RekomendasiController extends AdvancedAnalysisController
                 'kategori' => 'Data & Perencanaan',
                 'prioritas' => 'Kritis',
                 'skor' => 92,
-                'judul' => 'Tutup blank spot data ' . $this->n($f['madrasahTotal']) . ' madrasah dan ' . $this->n($f['tanpaDataSiswa']) . ' sekolah tanpa data murid',
+                'judul' => 'Integrasi data guru ' . $this->n($f['miSekolah']) . ' MI dan ' . $this->n($f['mtsSekolah']) . ' MTs (total ' . $this->n($f['madrasahTotal']) . ' madrasah) serta ' . $this->n($f['tanpaDataSiswa']) . ' sekolah tanpa murid',
                 'temuan' => [
-                    $this->n($f['madrasahTanpaGuru']) . ' dari ' . $this->n($f['madrasahTotal']) . ' MI/MTs/MA tidak punya satu pun rekaman guru — rasio, formasi, dan kebutuhan ruang madrasah tidak bisa dihitung.',
-                    $this->n($f['tanpaDataSiswa']) . ' sekolah pada peta tidak punya data murid pada ' . $label . ', sehingga otomatis terlewat dari perhitungan defisit ruang dan regrouping.',
-                    $this->n($f['jenjangSalah']) . ' sekolah nama dan jenjangnya tidak konsisten (mis. jenjang SD dengan nama pondok pesantren atau politeknik).',
+                    'Kekurangan data guru MI dan MTs pada basis data satuan pendidikan: ' . $this->n($f['miSekolah']) . ' MI (' . $this->n($f['miSiswa']) . ' siswa) dan ' . $this->n($f['mtsSekolah']) . ' MTs (' . $this->n($f['mtsSiswa']) . ' siswa), ditambah ' . $this->n($f['maSekolah']) . ' MA (' . $this->n($f['maSiswa']) . ' siswa), memiliki 0 rekaman guru per NPSN di tabel Dapodik (teacher_stats).',
+                    'Pada data agregat Satu Data Kemenag, MTs mencatat ' . $this->n($f['mtsGuruKemenag']) . ' guru (TA 2024/2025) namun hanya tersedia per kecamatan tanpa rincian NPSN/sertifikasi, sedangkan berkas CSV MI mengalami duplikasi dengan MTs pada 7 dari 9 tahun ajaran (data valid terakhir TA 2018/2019: ' . $this->n($f['miGuruKemenag']) . ' guru MI).',
+                    'Akibat masuknya ' . $this->n($f['miSiswa'] + $f['mtsSiswa']) . ' siswa MI/MTs (total ' . $this->n($f['miSiswa'] + $f['mtsSiswa'] + $f['maSiswa']) . ' siswa madrasah) tanpa pembagi guru di Dapodik, rasio siswa/guru kabupaten terdistorsi menjadi ' . $this->n($f['rasioKabupaten'], 1) . ':1 (padahal rasio riil sekolah umum non-madrasah adalah ' . $this->n($f['rasioKabupatenUmum'], 1) . ':1). Selain itu, ' . $this->n($f['tanpaDataSiswa']) . ' sekolah belum memiliki data murid dan ' . $this->n($f['jenjangSalah']) . ' sekolah tidak sinkron nama/jenjangnya.',
                 ],
                 'tindakan' => [
-                    'Teken kerja sama dengan Kantor Kemenag Kabupaten Banjarnegara untuk serah data EMIS (murid, guru, rombel) setiap semester.',
-                    'Jadikan kelengkapan Dapodik sebagai syarat pencairan BOSP tahap berikutnya, bukan imbauan.',
-                    'Bentuk tim verifikasi per kecamatan untuk membetulkan ' . $this->n($f['jenjangSalah']) . ' entri jenjang dan melengkapi ' . $this->n($f['tanpaDataSiswa']) . ' sekolah tanpa data murid.',
+                    'Teken kerja sama pertukaran data berkala dengan Kantor Kemenag Kabupaten Banjarnegara untuk menarik data EMIS per NPSN (khususnya rincian guru, sertifikasi, dan rombel pada ' . $this->n($f['miSekolah']) . ' MI dan ' . $this->n($f['mtsSekolah']) . ' MTs) serta perbaiki berkas CSV MI yang terduplikasi dengan MTs.',
+                    'Pisahkan indikator rasio siswa/guru antara sekolah umum kewenangan Dinas (' . $this->n($f['rasioKabupatenUmum'], 1) . ':1) dan rasio gabungan lintas instansi sampai data guru MI/MTs per NPSN masuk ke tabel teacher_stats.',
+                    'Bentuk tim verifikasi per kecamatan untuk membetulkan ' . $this->n($f['jenjangSalah']) . ' entri jenjang dan melengkapi ' . $this->n($f['tanpaDataSiswa']) . ' sekolah tanpa data murid sebagai syarat pencairan BOSP.',
                 ],
-                'dampak' => 'Seluruh satuan pendidikan masuk cakupan perencanaan, bukan hanya sekolah negeri di bawah dinas.',
+                'dampak' => 'Menghilangkan bias perhitungan rasio guru dan kepadatan rombel pada ' . $this->n($f['miSekolah']) . ' MI dan ' . $this->n($f['mtsSekolah']) . ' MTs sehingga analisis perencanaan kabupaten akurat 100%.',
                 'biaya' => null,
                 'tenggat' => 'Triwulan I 2027',
-                'unit' => 'Bidang Perencanaan & Sekretariat',
-                'dasar' => 'Tabel schools, teacher_stats, student_stats — ' . $label,
+                'unit' => 'Bidang Perencanaan, Sekretariat & Kankemenag',
+                'dasar' => 'Tabel schools, teacher_stats, student_stats (' . $label . ') & CSV Kemenag',
                 'tautan' => route('data-health'),
                 'labelTautan' => 'Kualitas Data',
             ],
@@ -282,22 +341,22 @@ class RekomendasiController extends AdvancedAnalysisController
                 'kategori' => 'Guru & Tenaga Kependidikan',
                 'prioritas' => 'Kritis',
                 'skor' => 88,
-                'judul' => 'Redistribusi guru: ' . $this->n($kecRasioTinggi) . ' kecamatan di atas rasio 20 siswa per guru',
+                'judul' => 'Redistribusi guru: ' . $this->n($kecRasioTinggi) . ' kecamatan di atas rasio 20:1 (terpengaruh kekosongan data guru MI & MTs)',
                 'temuan' => [
-                    'Rasio kabupaten ' . $this->n($f['rasioKabupaten'], 1) . ' siswa per guru (' . $this->n($f['totalSiswa']) . ' siswa / ' . $this->n($f['totalGuru']) . ' guru).',
-                    $this->n($kecRasioTinggi) . ' dari 20 kecamatan melebihi 20:1; tertinggi ' . $kecTerburuk . ' (' . $this->n($rasioTerburuk, 1) . ':1), disusul ' . implode(', ', array_slice(array_keys($rasioUrut), 1)) . '.',
-                    'Baru ' . $this->n($f['pctSertifikasi'], 1) . '% guru bersertifikat pendidik, dan sebarannya menumpuk di kecamatan yang rasio siswanya sudah rendah.',
+                    'Rasio gabungan tercatat ' . $this->n($f['rasioKabupaten'], 1) . ' siswa per guru (' . $this->n($f['totalSiswa']) . ' siswa / ' . $this->n($f['totalGuru']) . ' guru Dapodik). Namun angka ini belum sempurna karena ' . $this->n($f['miSiswa']) . ' siswa MI dan ' . $this->n($f['mtsSiswa']) . ' siswa MTs (serta ' . $this->n($f['maSiswa']) . ' siswa MA) ikut dihitung di pembilang sementara data gurunya di Dapodik masih 0.',
+                    'Jika dihitung khusus sekolah umum non-madrasah (' . $this->n($f['totalSiswaUmum']) . ' siswa / ' . $this->n($f['totalGuru']) . ' guru), rasio riil kabupaten adalah ' . $this->n($f['rasioKabupatenUmum'], 1) . ':1. Bila estimasi agregat guru Kemenag (' . $this->n($f['miGuruKemenag']) . ' guru MI + ' . $this->n($f['mtsGuruKemenag']) . ' guru MTs + ' . $this->n($f['maGuruKemenag']) . ' guru MA = ' . $this->n($f['estimasiGuruMadrasah']) . ' guru) digabungkan, rasio keseluruhan menjadi ' . $this->n($f['rasioEstimasiLengkap'], 1) . ':1.',
+                    'Pada perhitungan gabungan saat ini, ' . $this->n($kecRasioTinggi) . ' dari 20 kecamatan melampaui 20:1 dengan tertinggi di ' . $kecTerburuk . ' (' . $this->n($rasioTerburuk, 1) . ':1; rasio sekolah umumnya ' . $this->n($rasioUrut[$kecTerburuk]['rasio_umum'] ?? 0, 1) . ':1). Sementara itu, baru ' . $this->n($f['pctSertifikasi'], 1) . '% guru Dapodik yang bersertifikat pendidik.',
                 ],
                 'tindakan' => [
-                    'Hentikan penempatan guru baru di kecamatan berasio rendah; arahkan ke ' . $kecTerburuk . ' dan kecamatan lain yang di atas 20:1.',
-                    'Susun rencana mutasi bertahap dengan memprioritaskan guru bersertifikat di kecamatan gemuk.',
-                    'Arahkan formasi PPPK 2027 ke mapel dan kecamatan yang kekurangan, bukan merata per sekolah.',
+                    'Gunakan rasio sekolah umum non-madrasah (' . $this->n($f['rasioKabupatenUmum'], 1) . ':1) sebagai dasar mutasi guru PNS/PPPK di bawah Dindikpora sembari menunggu integrasi data guru MI dan MTs dari EMIS Kemenag.',
+                    'Susun rencana pemerataan guru bersertifikat ke kecamatan dengan rasio sekolah umum tertinggi dan koordinasikan kebutuhan guru MI/MTs bersama Seksi Pendidikan Madrasah Kemenag.',
+                    'Arahkan formasi PPPK 2027 ke mata pelajaran dan sekolah negeri yang riil mengalami kekurangan guru per rombel.',
                 ],
-                'dampak' => 'Menurunkan rasio ' . $kecTerburuk . ' ke bawah 20:1 dengan tambahan sekitar ' . $this->n($guruKurang) . ' guru di kecamatan itu.',
+                'dampak' => 'Penempatan dan redistribusi guru tepat sasaran pada sekolah yang benar-benar kekurangan pendidik tanpa terdistorsi kekosongan data guru MI dan MTs.',
                 'biaya' => null,
                 'tenggat' => 'Formasi 2027',
-                'unit' => 'Bidang GTK',
-                'dasar' => 'Dapodik ' . $label,
+                'unit' => 'Bidang GTK & Kankemenag',
+                'dasar' => 'Dapodik ' . $label . ' & Agregat Kemenag',
                 'tautan' => route('kebijakan'),
                 'labelTautan' => 'Analisis Kebijakan',
             ],
@@ -313,7 +372,7 @@ class RekomendasiController extends AdvancedAnalysisController
                     'Potensi penghematan ' . $this->n($reg['hematRombelRencana']) . ' rombel dan ' . $this->n($reg['hematGuruRencana']) . ' formasi guru.',
                 ],
                 'tindakan' => [
-                    'Verifikasi lapangan tahap pertama di ' . $kecKandidat . ' — kecamatan dengan pasangan terdekat terbanyak.',
+                    'Verifikasi lapangan tahap pertama di ' . $kecKandidat . ' sebagai kecamatan dengan pasangan terdekat terbanyak.',
                     'Tetapkan kriteria baku: hanya untuk pasangan dengan jarak tempuh di bawah 3 km dan tidak memutus akses anak di wilayah terpencil.',
                     'Jadikan hasilnya bahan revisi rencana penataan sekolah 2027–2031 sebelum ada usulan penutupan atau penggabungan.',
                 ],
@@ -330,13 +389,13 @@ class RekomendasiController extends AdvancedAnalysisController
                 'kategori' => 'Mutu Pembelajaran',
                 'prioritas' => 'Tinggi',
                 'skor' => 74,
-                'judul' => 'Pecah rombel gemuk di ' . $this->n($f['rombelPadat']) . ' sekolah, terbanyak jenjang ' . $padatUtama,
+                'judul' => 'Pecah rombel gemuk di ' . $this->n($f['rombelPadatUmum']) . ' sekolah umum (serta sinkronisasi rombel ' . $this->n($f['rombelPadatMadrasahPlaceholder']) . ' madrasah)',
                 'temuan' => [
-                    $this->n($f['rombelPadat']) . ' sekolah memiliki rombel dengan lebih dari 32 siswa.',
-                    'Konsentrasi terbesar: ' . $padatUtama . ' (' . $this->n($padatUtamaJumlah) . ' sekolah), disusul ' . implode(', ', array_map(
-                        fn ($k, $v) => $k . ' (' . $this->n($v) . ')',
-                        array_slice(array_keys($f['rombelPadatPerJenjang']), 1, 2),
-                        array_slice(array_values($f['rombelPadatPerJenjang']), 1, 2)
+                    'Tercatat ' . $this->n($f['rombelPadat']) . ' satuan pendidikan dengan rasio > 32 siswa/rombel, namun ' . $this->n($f['rombelPadatMadrasahPlaceholder']) . ' di antaranya adalah MI (' . $this->n($f['rombelPadatPerJenjang']['MI'] ?? 0) . '), MTs (' . $this->n($f['rombelPadatPerJenjang']['MTS'] ?? 0) . '), dan MA (' . $this->n($f['rombelPadatPerJenjang']['MA'] ?? 0) . ') yang jumlah rombelnya masih tercatat placeholder 1 rombel di basis data.',
+                    'Pada sekolah umum yang data rombelnya lengkap, terdapat ' . $this->n($f['rombelPadatUmum']) . ' sekolah dengan rombel padat: ' . implode(', ', array_map(
+                        fn ($k, $v) => $k . ' (' . $this->n($v) . ' sekolah)',
+                        array_keys($f['rombelPadatUmumPerJenjang']),
+                        array_values($f['rombelPadatUmumPerJenjang'])
                     )) . '.',
                     'Rombel gemuk menurunkan kualitas interaksi belajar dan menyulitkan pemenuhan standar proses.',
                 ],
@@ -408,7 +467,7 @@ class RekomendasiController extends AdvancedAnalysisController
                 'skor' => 58,
                 'judul' => 'Kejar rata-rata lama sekolah: selisih ' . $this->n($selisihHlsRls, 2) . ' tahun dengan harapan lama sekolah',
                 'temuan' => [
-                    'Harapan lama sekolah ' . $this->n($hlsAkhir, 2) . ' tahun, tetapi rata-rata lama sekolah penduduk hanya ' . $this->n($rlsAkhir, 2) . ' tahun — selisih ' . $this->n($selisihHlsRls, 2) . ' tahun.',
+                    'Harapan lama sekolah ' . $this->n($hlsAkhir, 2) . ' tahun, tetapi rata-rata lama sekolah penduduk hanya ' . $this->n($rlsAkhir, 2) . ' tahun (selisih ' . $this->n($selisihHlsRls, 2) . ' tahun).',
                     'Artinya anak yang sekarang bersekolah diharapkan tamat SMA, sementara penduduk dewasa rata-rata hanya tamat kelas VII.',
                     'Kemiskinan ' . $this->n($miskinAkhir, 2) . '% menahan anak bekerja lebih awal.',
                 ],

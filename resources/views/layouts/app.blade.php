@@ -381,6 +381,10 @@
         </footer>
     </div>
 
+    @auth
+        @include('partials.chatbot')
+    @endauth
+
     @stack('scripts')
 </body>
 </html>
